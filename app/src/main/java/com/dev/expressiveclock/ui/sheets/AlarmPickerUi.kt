@@ -82,6 +82,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -157,6 +159,8 @@ fun AlarmPickerSheetContent(
         if (pickerState.minute != minute) pickerState.minute = minute
     }
 
+    val view = LocalView.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,7 +190,7 @@ fun AlarmPickerSheetContent(
             SheetHeaderButton(
                 text = "Save",
                 primary = true,
-                onClick = onSave,
+                onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onSave() },
                 //icon = Icons.Rounded.Check,
             )
         }
@@ -422,13 +426,14 @@ private fun SoundListItem(
     isLast: Boolean,
 ) {
     ListItem(
+        onClick = onSoundClick,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
-            .clickable(onClick = onSoundClick)
             .padding(vertical = 1.dp),
         shapes = ListItemDefaults.shapes(
             shape = joinedBlockShape(isFirst = isFirst, isLast = isLast),
+            pressedShape = CircleShape, hoveredShape = CircleShape
+
         ),
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -475,13 +480,17 @@ private fun VibrationListItem(
     isLast: Boolean,
 ) {
     ListItem(
+        onClick = {
+            onVibrateChange(!vibrate)
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
-            .clickable(onClick = { onVibrateChange(!vibrate) })
+
             .padding(vertical = 1.dp),
         shapes = ListItemDefaults.shapes(
             shape = joinedBlockShape(isFirst = isFirst, isLast = isLast),
+            pressedShape = CircleShape, hoveredShape = CircleShape
+
         ),
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer

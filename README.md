@@ -6,7 +6,7 @@ Expressive Clock is a personal evolution of [Material Clock](https://github.com/
 
 Building on that foundation, Expressive Clock brings together alarms, a world clock, timers and a stopwatch in a modern Android interface inspired by Google's Material 3 Expressive design language.
 
-<p align="center">
+<p >
   <img src="docs/screenshots/expressive_clock1.png" width="49%" alt="Expressive Clock — alarms" />
   <img src="docs/screenshots/expressive_clock2.png" width="49%" alt="Expressive Clock — timers" />
 </p>
@@ -14,8 +14,9 @@ Building on that foundation, Expressive Clock brings together alarms, a world cl
   <img src="docs/screenshots/expressive_clock3.png" width="49%" alt="Expressive Clock — stopwatch" />
   <img src="docs/screenshots/expressive_clock4.png" width="49%" alt="Expressive Clock — world clock" />
 </p>
-<p align="center">
+<p >
   <img src="docs/screenshots/expressive_clock5.png" width="49%" alt="Expressive Clock — settings" />
+  <img src="docs/screenshots/expressive_clock6.png" width="49%" alt="Expressive Clock — settings" />
 </p>
 
 ## Features

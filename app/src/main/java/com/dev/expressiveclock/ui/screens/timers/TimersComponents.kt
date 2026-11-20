@@ -502,6 +502,7 @@ internal fun ExpandedSetTimerBody(
     onPreset: (Int) -> Unit,
     onStart: () -> Unit,
 ) {
+    val view = LocalView.current
     var isLongPressReset by remember { mutableStateOf(false) }
 
     LaunchedEffect(draft) {
@@ -567,7 +568,7 @@ internal fun ExpandedSetTimerBody(
                     TimerButton(
                         text = "Start",
                         icon = Icons.Rounded.PlayArrow,
-                        onClick = onStart,
+                        onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onStart() },
                         container = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .72f),
                         content = MaterialTheme.colorScheme.onPrimaryContainer,
                         height = 56.dp,
@@ -594,6 +595,7 @@ internal fun ExpandedRunningTimerBody(
     onAddTen: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val view = LocalView.current
     val remaining = if (isFinished) Duration.ZERO else timer.remaining(nowElapsedMillis)
     val progress = if (isFinished) 1f else timer.fractionLeft(nowElapsedMillis).coerceIn(0f, 1f)
     val primary = MaterialTheme.colorScheme.primary
@@ -667,8 +669,7 @@ internal fun ExpandedRunningTimerBody(
                         TimerButton(
                             text = "Stop",
                             icon = Icons.Rounded.Close,
-                            onClick = onCancel,
-                            container = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.88f),
+                            onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onCancel() },                            container = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.88f),
                             content = MaterialTheme.colorScheme.onTertiaryContainer,
                             height = 56.dp,
                             compact = true,
@@ -692,8 +693,7 @@ internal fun ExpandedRunningTimerBody(
                             TimerButton(
                                 text = if (running) "Pause" else "Resume",
                                 icon = if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                onClick = onPauseResume,
-                                height = 56.dp,
+                                onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onPauseResume() },                                height = 56.dp,
                                 compact = true,
                                 fillWidth = true,
                                 glow = false,
@@ -707,8 +707,7 @@ internal fun ExpandedRunningTimerBody(
                             TimerButton(
                                 text = "+10s",
                                 icon = Icons.Rounded.Add,
-                                onClick = onAddTen,
-                                height = 56.dp,
+                                onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onAddTen() },                                height = 56.dp,
                                 compact = true,
                                 fillWidth = true,
                                 glow = false,
@@ -722,8 +721,7 @@ internal fun ExpandedRunningTimerBody(
                             TimerButton(
                                 text = "Cancel",
                                 icon = Icons.Rounded.Close,
-                                onClick = onCancel,
-                                height = 56.dp,
+                                onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onCancel() },                                height = 56.dp,
                                 outlined = true,
                                 content = MaterialTheme.colorScheme.onSurface,
                                 compact = true,
@@ -1160,6 +1158,7 @@ internal fun TimerControls(
     onAddTen: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val view = LocalView.current
     val cancelInteraction = remember { MutableInteractionSource() }
     val resumeInteraction = remember { MutableInteractionSource() }
     val secondsInteraction = remember { MutableInteractionSource() }
@@ -1174,8 +1173,7 @@ internal fun TimerControls(
             TimerButton(
                 text = "Stop",
                 icon = Icons.Rounded.Close,
-                onClick = onCancel,
-                container = MaterialTheme.colorScheme.tertiaryContainer,
+                onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onCancel() },                container = MaterialTheme.colorScheme.tertiaryContainer,
                 content = MaterialTheme.colorScheme.onTertiaryContainer,
                 height = TIMER_ROW_HEIGHT,
                 compact = true,
@@ -1245,7 +1243,7 @@ internal fun TimerControls(
                     TimerButton(
                         text = "Start",
                         icon = Icons.Rounded.PlayArrow,
-                        onClick = onStart,
+                        onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onStart() },
                         container = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .72f),
                         content = MaterialTheme.colorScheme.onPrimaryContainer,
                         height = TIMER_ROW_HEIGHT,
@@ -1274,8 +1272,7 @@ internal fun TimerControls(
                         customItem(
                             buttonGroupContent = {
                                 Button(
-                                    onClick = onPauseResume,
-                                    modifier = Modifier
+                                    onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onPauseResume() },                                    modifier = Modifier
                                         .weight(0.7f)
                                         .animateWidth(resumeInteraction),
                                     interactionSource = resumeInteraction,
@@ -1303,8 +1300,7 @@ internal fun TimerControls(
                         customItem(
                             buttonGroupContent = {
                                 FilledTonalButton (
-                                    onClick = onAddTen,
-                                    modifier = Modifier
+                                    onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onAddTen() },                                    modifier = Modifier
                                         .weight(0.6f)
                                         .animateWidth(secondsInteraction),
                                     interactionSource = secondsInteraction,
@@ -1327,8 +1323,7 @@ internal fun TimerControls(
                         customItem(
                             buttonGroupContent = {
                                 OutlinedButton(
-                                    onClick = onCancel,
-                                    modifier = Modifier
+                                    onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); onCancel() },                                    modifier = Modifier
                                         .weight(0.25f)
                                         .animateWidth(cancelInteraction),
                                     shapes = androidx.compose.material3.ButtonShapes(

@@ -499,14 +499,13 @@ internal fun SettingsNavigateRow(
     onClick: () -> Unit,
 ) {
     ListItem(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .expandedSettingsTile()
-            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
-            .clickable(onClick = onClick)
             .padding(vertical = 1.dp),
         shapes = ListItemDefaults.shapes(
             shape = joinedBlockShape(isFirst = isFirst, isLast = isLast),
+            pressedShape = CircleShape, hoveredShape = CircleShape
         ),
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -549,13 +548,18 @@ internal fun SettingsNavigateRow(
     }
 }
 
-fun joinedBlockShape(isFirst: Boolean, isLast: Boolean): AbsoluteRoundedCornerShape =
-    AbsoluteRoundedCornerShape(
-        topLeft = if (isFirst) 16.dp else 4.dp,
-        topRight = if (isFirst) 16.dp else 4.dp,
-        bottomLeft = if (isLast) 16.dp else 4.dp,
-        bottomRight = if (isLast) 16.dp else 4.dp
-    )
+fun joinedBlockShape(isFirst: Boolean, isLast: Boolean): RoundedCornerShape = RoundedCornerShape(
+    topStart = if (isFirst) 16.dp else 4.dp,
+    topEnd =  if (isFirst) 16.dp else 4.dp,
+    bottomStart = if (isLast) 16.dp else 4.dp,
+    bottomEnd = if (isLast) 16.dp else 4.dp
+)
+//    AbsoluteRoundedCornerShape(
+//        topLeft = if (isFirst) 16.dp else 4.dp,
+//        topRight = if (isFirst) 16.dp else 4.dp,
+//        bottomLeft = if (isLast) 16.dp else 4.dp,
+//        bottomRight = if (isLast) 16.dp else 4.dp
+//    )
 @Composable
 internal fun SettingsSwitchRow(
     icon: ImageVector,
@@ -568,14 +572,13 @@ internal fun SettingsSwitchRow(
 ) {
 
     ListItem(
+        onClick = {onCheckedChange(!checked)},
         modifier = Modifier
             .fillMaxWidth()
-            .expandedSettingsTile()
-            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
-            .clickable(onClick = { onCheckedChange(!checked) })
             .padding(vertical = 1.dp),
         shapes = ListItemDefaults.shapes(
             shape = joinedBlockShape(isFirst = isFirst, isLast = isLast),
+            pressedShape = CircleShape, hoveredShape = CircleShape
         ),
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
