@@ -22,44 +22,22 @@ android {
      * Release signing configuration, loading credentials from root-level `keystore.properties` or Gradle properties.
      * Strict enforcement: fails release builds cleanly if properties or keystore file are missing.
      */
-    val keystorePropsFile = rootProject.file("keystore.properties")
-    val keystoreProps = Properties()
-    if (keystorePropsFile.exists()) {
-        keystorePropsFile.inputStream().use { stream ->
-            keystoreProps.load(stream)
-        }
-    }
-
-    // Resolve signing values from keystore.properties OR Gradle properties (CI passes -P...).
-    fun prop(key: String): String? =
-        keystoreProps.getProperty(key) ?: (findProperty(key) as String?)
-
-    val storePath = prop("clockStoreFile")
-    val storePassword = prop("clockStorePassword")
-    val keyAlias = prop("clockKeyAlias")
-    val keyPassword = prop("clockKeyPassword")
-
     signingConfigs {
-        // Configure release signing when a keystore path is available (local file or CI),
-        // so CI builds (which pass -PclockStore*) produce a signed APK instead of an
-        // unsigned one that fails to install with INSTALL_PARSE_FAILED_NO_CERTIFICATES.
-        if (storePath != null && storePassword != null && keyAlias != null && keyPassword != null) {
+        // Minimal: keystore sits at app/keyStore.jks (CI decodes it there).
+        // Only configure when present, so local dev without a keystore still builds (debug fallback).
+        if (file("keyStore.jks").exists()) {
             create("release") {
-                val storeFileObj = rootProject.file(storePath)
-                if (!storeFileObj.exists()) {
-                    error("Keystore file '$storePath' does not exist.")
-                }
-                storeFile = storeFileObj
-                this.storePassword = storePassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
+                storeFile = file("keyStore.jks")
+                storePassword = (findProperty("clockStorePassword") as String?)
+                keyAlias = (findProperty("clockKeyAlias") as String?)
+                keyPassword = (findProperty("clockKeyPassword") as String?)
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfigs.findByName("release")?.let { signingConfig = it }
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
