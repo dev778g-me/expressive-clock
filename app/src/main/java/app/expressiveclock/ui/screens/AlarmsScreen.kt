@@ -115,7 +115,6 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import kotlinx.coroutines.delay
-import app.expressiveclock.ui.elasticClickable
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -126,14 +125,13 @@ import androidx.compose.ui.unit.sp
 import app.expressiveclock.core.Alarm
 import app.expressiveclock.core.WorldCity
 import app.expressiveclock.ui.glass
-import app.expressiveclock.ui.elasticClickable
-import app.expressiveclock.ui.luminousElasticClickable
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
 import app.expressiveclock.ui.sheets.AlarmPickerSheetContent
 import app.expressiveclock.ui.sheets.SILENT
 import android.media.RingtoneManager
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalContext
 import java.time.LocalTime
 import app.expressiveclock.data.WeekStart
@@ -1172,9 +1170,9 @@ private fun AlarmTile(
     )
     val animatedContainer by animateColorAsState(
         targetValue = when {
-            selected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = .92f)
-            armed -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = .62f)
-            else -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = .88f)
+            selected -> MaterialTheme.colorScheme.primaryContainer
+            armed -> MaterialTheme.colorScheme.tertiaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainer
         },
         animationSpec = tween(220),
         label = "alarmContainer",
@@ -1227,7 +1225,7 @@ private fun AlarmTile(
     Surface(
         color = Color.Transparent,
         shape = RoundedCornerShape(24.dp),
-        border = null,
+        border = if (selected) BorderStroke(width = 2.dp, animatedBorderColor) else null,
         shadowElevation = 0.dp,
         modifier = itemModifier
             .fillMaxWidth()
@@ -1238,7 +1236,6 @@ private fun AlarmTile(
                 scaleY = scale
             }
             .background(animatedContainer, RoundedCornerShape(24.dp))
-            .border(if (selected) 2.dp else 1.25.dp, animatedBorderColor, RoundedCornerShape(24.dp))
             .height(tileHeight)
             .combinedClickable(
                 onClick = {
@@ -1468,7 +1465,7 @@ private fun DeleteAlarmsConfirmationSheet(
                     .height(52.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.error)
-                    .elasticClickable {
+                    .clickable {
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             onConfirmDelete()
                         }
@@ -1490,7 +1487,7 @@ private fun DeleteAlarmsConfirmationSheet(
                     .height(52.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f))
-                    .elasticClickable {
+                    .clickable {
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             onDismiss()
                         }
@@ -1651,7 +1648,7 @@ private fun DayLetters(alarm: Alarm, order: List<DayOfWeek>, ink: Color) {
                 val on = !alarm.isOneShot && day in alarm.days
                 withStyle(
                     SpanStyle(
-                        // Weight is the state here too, matching the numerals above.
+
                         fontFamily = (if (on) bold else light).fontFamily,
                         color = if (on) ink else ink.copy(alpha = 0.30f),
                     )
@@ -1720,12 +1717,7 @@ private fun EmptyAlarmState(
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .luminousElasticClickable(
-                    shape = CircleShape,
-                    maxStretchPercent = 0.08f,
-                    maxTranslateDp = 2.2.dp,
-                    onClick = onAddAlarm,
-                )
+                .clickable(onClick = onAddAlarm)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.88f))
                 .padding(horizontal = 24.dp, vertical = 14.dp),
