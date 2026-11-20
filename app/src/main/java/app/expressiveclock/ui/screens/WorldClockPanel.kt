@@ -186,12 +186,12 @@ private fun DottedWorldMap(
             val selected = city.zone.id == selectedZoneId
             val color by animateColorAsState(
                 if (selected) gold else primary,
-                animationSpec = tween(320, easing = FastOutSlowInEasing),
+                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                 label = "worldMarkerColor",
             )
             val glow by animateFloatAsState(
                 if (selected) 1f else 0f,
-                animationSpec = tween(320, easing = FastOutSlowInEasing),
+                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                 label = "worldMarkerGlow",
             )
             city.zone.id to (color to glow)

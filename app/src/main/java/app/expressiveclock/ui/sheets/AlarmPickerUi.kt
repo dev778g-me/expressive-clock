@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -186,7 +187,7 @@ fun AlarmPickerSheetContent(
                 text = "Save",
                 primary = true,
                 onClick = onSave,
-                icon = Icons.Rounded.Check,
+                //icon = Icons.Rounded.Check,
             )
         }
 
@@ -526,6 +527,11 @@ private fun DeleteAlarmCard(onDelete: () -> Unit) {
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer
+        ),
+        shapes = ListItemDefaults.shapes(
+            shape = RoundedCornerShape(12.dp),
+            pressedShape = CircleShape,
+            hoveredShape = CircleShape,
         ),
         onClick = onDelete
     ) {

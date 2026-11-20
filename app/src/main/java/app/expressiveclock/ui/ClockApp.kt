@@ -209,20 +209,21 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
         var isPostOnboardingStaggerToken by rememberSaveable { mutableIntStateOf(0) }
 
         val onboardingTransition = updateTransition(targetState = showOnboarding, label = "onboardingTransition")
+        val motionScheme = MaterialTheme.motionScheme
 
         onboardingTransition.AnimatedContent(
             transitionSpec = {
                 if (!targetState) {
                     slideInHorizontally(
-                        animationSpec = spring(stiffness = 380f, dampingRatio = 0.82f),
+                        animationSpec = motionScheme.defaultSpatialSpec(),
                         initialOffsetX = { width -> width },
-                    ) + fadeIn(tween(220)) togetherWith
+                    ) + fadeIn(motionScheme.defaultEffectsSpec()) togetherWith
                         slideOutHorizontally(
-                            animationSpec = spring(stiffness = 380f, dampingRatio = 0.82f),
+                            animationSpec = motionScheme.defaultSpatialSpec(),
                             targetOffsetX = { width -> -width },
-                        ) + fadeOut(tween(200))
+                        ) + fadeOut(motionScheme.fastEffectsSpec())
                 } else {
-                    fadeIn(tween(200)) togetherWith fadeOut(tween(200))
+                    fadeIn(motionScheme.fastEffectsSpec()) togetherWith fadeOut(motionScheme.fastEffectsSpec())
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -298,16 +299,19 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
             )
 
           GlassBackdrop(Modifier.fillMaxSize()) {
+            val motionScheme = MaterialTheme.motionScheme
             AnimatedContent(
                 targetState = activeTab,
                 transitionSpec = {
                     val forward = targetState.ordinal > initialState.ordinal
                     slideInHorizontally(
+                        animationSpec = motionScheme.defaultSpatialSpec(),
                         initialOffsetX = { width -> if (forward) width else -width },
-                    ) + fadeIn() togetherWith
+                    ) + fadeIn(motionScheme.defaultEffectsSpec()) togetherWith
                         slideOutHorizontally(
+                            animationSpec = motionScheme.defaultSpatialSpec(),
                             targetOffsetX = { width -> if (forward) -width else width },
-                        ) + fadeOut()
+                        ) + fadeOut(motionScheme.defaultEffectsSpec())
                 },
                 label = "tab",
             ) { current ->
@@ -401,17 +405,17 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
             val showAdd = activeTab == Tab.ALARMS
             val addAlpha by animateFloatAsState(
                 targetValue = if (showAdd) 1f else 0f,
-                animationSpec = tween(180),
+                animationSpec = motionScheme.fastEffectsSpec(),
                 label = "toolbarAddAlpha",
             )
             val addScale by animateFloatAsState(
                 targetValue = if (showAdd) 1f else .78f,
-                animationSpec = spring(dampingRatio = 0.9f, stiffness = 620f),
+                animationSpec = motionScheme.fastSpatialSpec(),
                 label = "toolbarAddScale",
             )
             val fabWidth by animateDpAsState(
                 targetValue = if (showAdd) 56.dp else 0.dp,
-                animationSpec = spring(dampingRatio = 0.86f, stiffness = 560f),
+                animationSpec = motionScheme.defaultSpatialSpec(),
                 label = "toolbarFabWidth",
             )
 
@@ -598,10 +602,10 @@ private fun RowScope.FloatingToolbarNavItem(
             AnimatedVisibility(
                 visible = selected,
                 enter = expandHorizontally(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                    animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
                 ) + fadeIn(),
                 exit = shrinkHorizontally(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                    animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
                 ) + fadeOut(),
             ) {
                 Text(

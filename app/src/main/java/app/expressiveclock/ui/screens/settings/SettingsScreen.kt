@@ -179,6 +179,7 @@ import app.expressiveclock.overlay.OverlayAccessibilityService
 import app.expressiveclock.overlay.OverlayManager
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
+import androidx.core.net.toUri
 
 @Composable
 fun SettingsScreen(
@@ -361,8 +362,8 @@ fun SettingsScreen(
                     )
                     AnimatedVisibility(
                         visible = !settings.theme.dynamicColor,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
+                        enter = expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+                        exit = shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         SettingsNavigateRow(
@@ -412,176 +413,145 @@ fun SettingsScreen(
                     )
                 }
 
-            if (category == null || category == SettingsCategory.TIMERS) SettingsCard(title = "Timers") {
-                val timerSoundSubtitle = remember(settings.timers.soundUri) {
-                    when (val u = settings.timers.soundUri) {
-                        null -> "Default alarm sound"
-                        SILENT -> "Silent"
-                        else -> runCatching {
-                            RingtoneManager.getRingtone(context, Uri.parse(u))?.getTitle(context)
-                        }.getOrNull() ?: "Default alarm sound"
+                SettingsCard(title = "Timers") {
+                    val timerSoundSubtitle = remember(settings.timers.soundUri) {
+                        when (val u = settings.timers.soundUri) {
+                            null -> "Default alarm sound"
+                            SILENT -> "Silent"
+                            else -> runCatching {
+                                RingtoneManager.getRingtone(context, u.toUri())?.getTitle(context)
+                            }.getOrNull() ?: "Default alarm sound"
+                        }
                     }
-                }
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.MusicNote,
-                    title = "Timer sound",
-                    subtitle = timerSoundSubtitle,
-                    isFirst = true,
-                    onClick = {
-                        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Timer sound")
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                            val currentUri = settings.timers.soundUri
-                            if (currentUri != SILENT) {
-                                val uriToPass = currentUri?.let(Uri::parse)
-                                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, uriToPass)
+                    SettingsNavigateRow(
+                        icon = Icons.Outlined.MusicNote,
+                        title = "Timer sound",
+                        subtitle = timerSoundSubtitle,
+                        isFirst = true,
+                        onClick = {
+                            val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Timer sound")
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                val currentUri = settings.timers.soundUri
+                                if (currentUri != SILENT) {
+                                    val uriToPass = currentUri?.let(Uri::parse)
+                                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, uriToPass)
+                                }
                             }
-                        }
-                        timerSoundLauncher.launch(intent)
-                    },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.Timer,
-                    title = "Timer presets",
-                    subtitle = settings.timers.presets.joinToString(", ") { formatPresetLabel(it) },
-                    onClick = { picker = SettingsPicker.PRESETS },
-                )
-SettingsSwitchRow(
-                    icon = Icons.Outlined.HourglassEmpty,
-                    title = "Timer vibration",
-                    subtitle = "Vibrate when a timer finishes",
-                    checked = settings.timers.vibrate,
-                    isFirst = false,
-                    isLast = false,
-                    onCheckedChange = { value ->
-                        onChange { it.copy(timers = it.timers.copy(vibrate = value)) }
-                    },
-                )
-val isAccConnected = checkAccessibilityGranted(context)
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Timer,
-                    title = "Dynamic Island overlay",
-                    subtitle = "Show timer & stopwatch controls over other apps",
-                    checked = settings.theme.dynamicIsland,
-                    isLast = true,
-                    onCheckedChange = { enable ->
-                        if (enable) {
-                            onChange { it.copy(theme = it.theme.copy(dynamicIsland = true)) }
-                            if (!isAccConnected) {
-                                showAccessibilityPromptDialog = true
+                            timerSoundLauncher.launch(intent)
+                        },
+                    )
+    SettingsNavigateRow(
+                        icon = Icons.Outlined.Timer,
+                        title = "Timer presets",
+                        subtitle = settings.timers.presets.joinToString(", ") { formatPresetLabel(it) },
+                        onClick = { picker = SettingsPicker.PRESETS },
+                    )
+    SettingsSwitchRow(
+                        icon = Icons.Outlined.HourglassEmpty,
+                        title = "Timer vibration",
+                        subtitle = "Vibrate when a timer finishes",
+                        checked = settings.timers.vibrate,
+                        isFirst = false,
+                        isLast = false,
+                        onCheckedChange = { value ->
+                            onChange { it.copy(timers = it.timers.copy(vibrate = value)) }
+                        },
+                    )
+    val isAccConnected = checkAccessibilityGranted(context)
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.Timer,
+                        title = "Dynamic Island overlay",
+                        subtitle = "Show timer & stopwatch controls over other apps",
+                        checked = settings.theme.dynamicIsland,
+                        isLast = true,
+                        onCheckedChange = { enable ->
+                            if (enable) {
+                                onChange { it.copy(theme = it.theme.copy(dynamicIsland = true)) }
+                                if (!isAccConnected) {
+                                    showAccessibilityPromptDialog = true
+                                }
+                            } else {
+                                onChange { it.copy(theme = it.theme.copy(dynamicIsland = false)) }
                             }
-                        } else {
-                            onChange { it.copy(theme = it.theme.copy(dynamicIsland = false)) }
-                        }
-                    },
-                )
-                AnimatedVisibility(
-                    visible = settings.theme.dynamicIsland,
-                    enter = expandVertically(animationSpec = spring(stiffness = 450f, dampingRatio = 0.8f)) + fadeIn(animationSpec = tween(180)),
-                    exit = shrinkVertically(animationSpec = spring(stiffness = 450f, dampingRatio = 0.8f)) + fadeOut(animationSpec = tween(150)),
-                ) {
-                    Column {
-SettingsNavigateRow(
-                            icon = Icons.Outlined.Timer,
-                            title = "Position calibration",
-                            subtitle = "Fine-tune horizontal & vertical alignment",
-                            onClick = { showCalibrationDialog = true },
-                        )
-                        if (!isAccConnected) {
-SettingsNavigateRow(
+                        },
+                    )
+                    AnimatedVisibility(
+                        visible = settings.theme.dynamicIsland,
+                        enter = expandVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+                        exit = shrinkVertically(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
+                    ) {
+                        Column {
+    SettingsNavigateRow(
                                 icon = Icons.Outlined.Timer,
-                                title = "Enable status bar overlay",
-                                subtitle = "Draw above system status bars via Accessibility",
-                                onClick = { showAccessibilityPromptDialog = true },
+                                title = "Position calibration",
+                                subtitle = "Fine-tune horizontal & vertical alignment",
+                                onClick = { showCalibrationDialog = true },
                             )
+                            if (!isAccConnected) {
+    SettingsNavigateRow(
+                                    icon = Icons.Outlined.Timer,
+                                    title = "Enable status bar overlay",
+                                    subtitle = "Draw above system status bars via Accessibility",
+                                    onClick = { showAccessibilityPromptDialog = true },
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            if (category == null || category == SettingsCategory.MISCELLANEOUS) SettingsCard(title = "MISCELLANEOUS") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.Home,
-                    title = "Default startup page",
-                    subtitle = settings.defaultStartupPage.label,
-                    isFirst = true,
-                    onClick = { picker = SettingsPicker.STARTUP_PAGE },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.HourglassEmpty,
-                    title = "Show setup again",
-                    subtitle = "Reopen the first-launch permissions setup",
-                    isLast = true,
-                    onClick = onReopenOnboarding,
-                )
-            }
+                SettingsCard(title = "MISCELLANEOUS") {
+                    SettingsNavigateRow(
+                        icon = Icons.Outlined.Home,
+                        title = "Default startup page",
+                        subtitle = settings.defaultStartupPage.label,
+                        isFirst = true,
+                        onClick = { picker = SettingsPicker.STARTUP_PAGE },
+                    )
+    SettingsNavigateRow(
+                        icon = Icons.Outlined.HourglassEmpty,
+                        title = "Show setup again",
+                        subtitle = "Reopen the first-launch permissions setup",
+                        isLast = true,
+                        onClick = onReopenOnboarding,
+                    )
+                }
 
-            if (category == null || category == SettingsCategory.ABOUT) SettingsCard(title = "About") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.SystemUpdate,
-                    title = "Check for updates",
-                    subtitleContent = {
-                        AnimatedContent(
-                            targetState = if (isCheckingUpdates) "Checking for updates" else "Keep Expressive Clock up to date",
-                            transitionSpec = {
-                                (slideInVertically(
-                                    animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-                                    initialOffsetY = { height -> height / 2 },
-                                ) + fadeIn(tween(durationMillis = 200))) togetherWith
-                                    (slideOutVertically(
-                                        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                                        targetOffsetY = { height -> -height / 2 },
-                                    ) + fadeOut(tween(durationMillis = 180)))
-                            },
-                            label = "updateSubtitleTransition",
-                        ) { targetText ->
-                            Text(
-                                text = targetText,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                SettingsCard(title = "About") {
+                    SettingsNavigateRow(
+                        icon = SimpleIconsGithub,
+                        title = "View source on GitHub",
+                        subtitle = "Star the project and read the code",
+                        isFirst = true,
+                        onClick = {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://github.com/dev778g-me/expressive-clock"),
                             )
-                        }
-                    },
-                    isFirst = true,
-                    onClick = {
-                        if (!isCheckingUpdates) {
-                            checkForUpdates()
-                        }
-                    },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.PrivacyTip,
-                    title = "Privacy",
-                    subtitle = "No accounts, no telemetry, no network",
-                    onClick = { picker = SettingsPicker.PRIVACY },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.PrivacyTip,
-                    title = "Privacy policy",
-                    subtitle = "Read how Expressive Clock handles your data",
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://samuelbeckman.github.io/expressive-clock/privacy-policy.html"),
-                        )
-                        runCatching { context.startActivity(intent) }
-                            .onFailure {
-                                Toast.makeText(context, "Couldn't open the privacy policy.", Toast.LENGTH_SHORT).show()
-                            }
-                    },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.Info,
-                    title = "App version",
-                    subtitle = "Clock ${app.expressiveclock.BuildConfig.VERSION_NAME}",
-                    isLast = true,
-                    onClick = {},
-                )
-            }
+                            runCatching { context.startActivity(intent) }
+                                .onFailure {
+                                    Toast.makeText(context, "Couldn't open GitHub.", Toast.LENGTH_SHORT).show()
+                                }
+                        },
+                    )
+    SettingsNavigateRow(
+                        icon = Icons.Outlined.PrivacyTip,
+                        title = "Privacy",
+                        subtitle = "No accounts, no telemetry, no network",
+                        onClick = { picker = SettingsPicker.PRIVACY },
+                    )
+
+    SettingsNavigateRow(
+                        icon = Icons.Outlined.Info,
+                        title = "App version",
+                        subtitle = "Clock ${app.expressiveclock.BuildConfig.VERSION_NAME}",
+                        isLast = true,
+                        onClick = {},
+                    )
+                }
 
             Spacer(Modifier.height(4.dp))
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

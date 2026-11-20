@@ -318,24 +318,25 @@ fun AlarmsScreen(
             bottomInset = contentPadding.calculateBottomPadding(),
             modifier = modifier,
         ) {
+            val motionScheme = MaterialTheme.motionScheme
             AnimatedContent(
                 targetState = displayedAlarms.isEmpty(),
                 transitionSpec = {
                     if (targetState) {
-                        (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
-                            scaleIn(initialScale = 0.92f, animationSpec = spring(stiffness = 380f, dampingRatio = 0.78f)) +
-                            slideInVertically(animationSpec = spring(stiffness = 380f, dampingRatio = 0.78f)) { it / 16 }
+                        (fadeIn(motionScheme.defaultEffectsSpec()) +
+                            scaleIn(initialScale = 0.92f, animationSpec = motionScheme.defaultSpatialSpec()) +
+                            slideInVertically(animationSpec = motionScheme.defaultSpatialSpec()) { it / 16 }
                         ) togetherWith (
-                            fadeOut(tween(200, easing = FastOutSlowInEasing)) +
-                            scaleOut(targetScale = 0.95f, animationSpec = tween(200))
+                            fadeOut(motionScheme.defaultEffectsSpec()) +
+                            scaleOut(targetScale = 0.95f, animationSpec = motionScheme.fastEffectsSpec())
                         )
                     } else {
-                        (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
-                            scaleIn(initialScale = 0.95f, animationSpec = spring(stiffness = 380f, dampingRatio = 0.78f))
+                        (fadeIn(motionScheme.defaultEffectsSpec()) +
+                            scaleIn(initialScale = 0.95f, animationSpec = motionScheme.defaultSpatialSpec())
                         ) togetherWith (
-                            fadeOut(tween(200, easing = FastOutSlowInEasing)) +
-                            scaleOut(targetScale = 0.92f, animationSpec = tween(200)) +
-                            slideOutVertically(animationSpec = tween(200)) { it / 16 }
+                            fadeOut(motionScheme.defaultEffectsSpec()) +
+                            scaleOut(targetScale = 0.92f, animationSpec = motionScheme.fastEffectsSpec()) +
+                            slideOutVertically(animationSpec = motionScheme.fastEffectsSpec()) { it / 16 }
                         )
                     }
                 },

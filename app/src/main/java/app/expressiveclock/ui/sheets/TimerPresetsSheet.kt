@@ -88,7 +88,7 @@ fun TimerPresetsSheet(
                 Text("Timer presets", style = MaterialTheme.typography.titleLargeEmphasized, color = MaterialTheme.colorScheme.onSurface)
                 SheetHeaderButton(text = "Save", primary = true, onClick = {
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onSave(currentPresets) }
-                }, icon = Icons.Rounded.Check)
+                }, )
             }
             Spacer(Modifier.height(8.dp))
             Column(
