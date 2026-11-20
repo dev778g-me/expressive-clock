@@ -1,8 +1,8 @@
 package app.expressiveclock.ui.screens
 
+import android.Manifest
 import android.app.Activity
 import android.app.NotificationManager
-import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -21,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,11 +32,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.GenericShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -46,9 +45,11 @@ import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -59,10 +60,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.graphics.shapes.RoundedPolygon
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,41 +70,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.expressiveclock.overlay.OverlayAccessibilityService
-import kotlin.math.cos
-import kotlin.math.sin
 
-/**
- * Material 3 Expressive scalloped shape for onboarding permission icons.
- */
-private val OnboardingScallopedShape: Shape = GenericShape { size, _ ->
-    val centerX = size.width / 2f
-    val centerY = size.height / 2f
-    val outerRadius = minOf(size.width, size.height) / 2f
-    val innerRadius = outerRadius * 0.88f
-    val lobes = 10
-    val angleStep = (2 * Math.PI / lobes).toFloat()
-
-    for (i in 0 until lobes) {
-        val angle = i * angleStep
-        val nextAngle = (i + 1) * angleStep
-        val midAngle = angle + angleStep / 2f
-
-        val xOuter = centerX + outerRadius * cos(midAngle)
-        val yOuter = centerY + outerRadius * sin(midAngle)
-        val xInner = centerX + innerRadius * cos(nextAngle)
-        val yInner = centerY + innerRadius * sin(nextAngle)
-
-        if (i == 0) {
-            val xStart = centerX + innerRadius * cos(0f)
-            val yStart = centerY + innerRadius * sin(0f)
-            moveTo(xStart, yStart)
-        }
-
-        quadraticTo(xOuter, yOuter, xInner, yInner)
-    }
-    close()
-}
 
 /**
  * Dedicated first-launch setup screen for Expressive Clock permissions.
@@ -153,7 +121,7 @@ fun OnboardingScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start,
     ) {
@@ -194,6 +162,9 @@ fun OnboardingScreen(
             buttonBgColor = Color(0xFFFFDAD6),
             buttonTextColor = Color(0xFF410002),
             isGranted = isNotificationsGranted,
+            iconShape = MaterialShapes.Sunny,
+            isFirst = true,
+            isLast = false,
             onSetup = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -207,7 +178,7 @@ fun OnboardingScreen(
             },
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(2.dp))
 
         // Card 2: Full-screen alarms
         OnboardingSetupCard(
@@ -219,6 +190,7 @@ fun OnboardingScreen(
             buttonBgColor = Color(0xFFFFDCCA),
             buttonTextColor = Color(0xFF3B1A00),
             isGranted = isFullScreenIntentGranted,
+            iconShape = MaterialShapes.Cookie9Sided,
             onSetup = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
@@ -239,7 +211,7 @@ fun OnboardingScreen(
             },
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(2.dp))
 
         // Card 3: Background operation
         OnboardingSetupCard(
@@ -251,6 +223,7 @@ fun OnboardingScreen(
             buttonBgColor = Color(0xFFD8EED8),
             buttonTextColor = Color(0xFF072107),
             isGranted = isBackgroundGranted,
+            iconShape = MaterialShapes.Puffy,
             onSetup = {
                 Log.d("DynamicIslandOverlay", "SETUP BATTERY DIRECT REQUEST")
                 @Suppress("BATTERY_CHARGING_STATE")
@@ -264,7 +237,7 @@ fun OnboardingScreen(
             },
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(2.dp))
 
         // Card 4: Accessibility (optional)
         OnboardingSetupCard(
@@ -276,6 +249,9 @@ fun OnboardingScreen(
             buttonBgColor = Color(0xFFD7E3FF),
             buttonTextColor = Color(0xFF001B3F),
             isGranted = isAccessibilityGranted,
+            iconShape = MaterialShapes.Flower,
+            isFirst = false,
+            isLast = true,
             onSetup = {
                 Log.d("DynamicIslandOverlay", "SETUP ACCESSIBILITY REQUEST")
                 val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
@@ -294,11 +270,8 @@ fun OnboardingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.onSurface,
-                contentColor = MaterialTheme.colorScheme.surface,
-            ),
+            shapes = ButtonDefaults.shapes(),
+
         ) {
             Text(
                 text = "Continue",
@@ -311,51 +284,20 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // Subdued Set up later Text Button
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            TextButton(
-                onClick = onComplete,
-                modifier = Modifier.padding(vertical = 4.dp),
-            ) {
-                Text(
-                    text = "Set up later",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
+        // Subdued Set up later Button
 
-        Spacer(Modifier.height(4.dp))
-
-        // Privacy Policy Link
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
+        TextButton(
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shapes = ButtonDefaults.shapes(),
+            onClick = onComplete
         ) {
-            TextButton(
-                onClick = {
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://samuelbeckman.github.io/expressive-clock/privacy-policy.html"),
-                    )
-                    runCatching { context.startActivity(intent) }
-                },
-                modifier = Modifier.padding(vertical = 4.dp),
-            ) {
-                Text(
-                    text = "Privacy policy",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 14.sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = "Set up later",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                ),
+            )
         }
 
         Spacer(Modifier.windowInsetsPadding(WindowInsets.navigationBars))
@@ -373,12 +315,15 @@ private fun OnboardingSetupCard(
     buttonBgColor: Color,
     buttonTextColor: Color,
     isGranted: Boolean,
+    iconShape: RoundedPolygon = MaterialShapes.Heart,
+    isFirst: Boolean = false,
+    isLast: Boolean = false,
     onSetup: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(enabled = !isGranted, onClick = onSetup)
             .padding(16.dp),
@@ -386,13 +331,13 @@ private fun OnboardingSetupCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Scalloped Icon Container
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(OnboardingScallopedShape)
+                    .size(54.dp)
+                    .clip(iconShape.toShape())
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center,
             ) {
@@ -400,14 +345,12 @@ private fun OnboardingSetupCard(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconTintColor,
-                    modifier = Modifier.size(24.dp),
                 )
             }
 
-            // Title + Description + Setup Button
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -425,37 +368,33 @@ private fun OnboardingSetupCard(
                     )
 
                     // Set up / Already granted Button
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(
-                                if (isGranted) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f)
-                                else buttonBgColor
-                            )
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
+                    Button(
+                        onClick = onSetup,
+                        enabled = !isGranted,
+                        shapes = ButtonDefaults.shapes(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isGranted) MaterialTheme.colorScheme.surfaceContainerHigh
+                            else buttonBgColor,
+                            contentColor = if (isGranted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            else buttonTextColor,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        ),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                text = if (isGranted) "Already granted" else "Set up",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                ),
-                                color = if (isGranted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                else buttonTextColor,
+                        Text(
+                            text = if (isGranted) "Already granted" else "Set up",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                            ),
+                        )
+                        if (!isGranted) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
                             )
-                            if (!isGranted) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                                    contentDescription = null,
-                                    tint = buttonTextColor,
-                                    modifier = Modifier.size(14.dp),
-                                )
-                            }
                         }
                     }
                 }
