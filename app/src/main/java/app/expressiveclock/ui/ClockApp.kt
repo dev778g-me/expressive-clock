@@ -12,25 +12,35 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -55,9 +65,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -76,6 +88,23 @@ import app.expressiveclock.ui.sheets.NewAlarmPickerSheet
 import app.expressiveclock.ui.sheets.AddCitySheet
 import app.expressiveclock.ui.theme.ClockTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.ToggleButtonShapes
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.rememberAppWindowSizeInfo
 
@@ -117,7 +146,9 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
     val windowSizeInfo = rememberAppWindowSizeInfo()
 
     ClockTheme(settings.theme) {
-        CompositionLocalProvider(LocalAppWindowSizeInfo provides windowSizeInfo) {
+        CompositionLocalProvider(
+            LocalAppWindowSizeInfo provides windowSizeInfo,
+        ) {
             val defaultTab = when (settings.defaultStartupPage) {
                 DefaultStartupPage.ALARMS -> Tab.ALARMS
                 DefaultStartupPage.TIMER -> Tab.TIMERS
@@ -395,21 +426,71 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
                 }
             }
 
-            ClockDock(
-                destinations = listOf(Tab.ALARMS, Tab.TIMERS, Tab.STOPWATCH),
-                selected = activeTab,
-                onSelect = { tab = it },
-                // Only alarms need the detached action button. Timers and Stopwatch create
-                // their content directly from the screen, so the dock stays visually centered.
-                showAdd = activeTab == Tab.ALARMS,
-                addLabel = "Add alarm",
-                onAdd = { showNewAlarmPicker = true },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = DOCK_CLEARANCE),
-                enableGlow = false,
+            val showAdd = activeTab == Tab.ALARMS
+            val addAlpha by animateFloatAsState(
+                targetValue = if (showAdd) 1f else 0f,
+                animationSpec = tween(180),
+                label = "toolbarAddAlpha",
             )
+            val addScale by animateFloatAsState(
+                targetValue = if (showAdd) 1f else .78f,
+                animationSpec = spring(dampingRatio = 0.9f, stiffness = 620f),
+                label = "toolbarAddScale",
+            )
+            val fabWidth by animateDpAsState(
+                targetValue = if (showAdd) 56.dp else 0.dp,
+                animationSpec = spring(dampingRatio = 0.86f, stiffness = 560f),
+                label = "toolbarFabWidth",
+            )
+
+            val toolbarColors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(
+                toolbarContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                toolbarContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+
+            val navContent: @Composable RowScope.() -> Unit = {
+                listOf(Tab.ALARMS, Tab.TIMERS, Tab.STOPWATCH).forEach { item ->
+                    FloatingToolbarNavItem(
+                        tab = item,
+                        selected = activeTab == item,
+                        onClick = { tab = item },
+                    )
+                }
+            }
+
+            LookaheadScope {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = DOCK_CLEARANCE),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                ) {
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        colors = toolbarColors,
+                        content = navContent,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(fabWidth)
+                            .size(56.dp)
+                            .graphicsLayer {
+                                alpha = addAlpha
+                                scaleX = addScale
+                                scaleY = addScale
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        FloatingToolbarDefaults.VibrantFloatingActionButton(
+                            onClick = { if (showAdd) showNewAlarmPicker = true },
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = "Add alarm")
+                        }
+                    }
+                }
+            }
           }
             }
             }
@@ -472,6 +553,95 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
                 onDismiss = { showAddCitySheet = false },
             )
         }
+        }
+    }
+}
+
+
+@Composable
+private fun RowScope.FloatingToolbarNavItem(
+    tab: Tab,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    var tapCount by remember { mutableIntStateOf(0) }
+    val rotation = remember { Animatable(0f) }
+    val selectedScale by animateFloatAsState(
+        targetValue = if (selected) 1f else .94f,
+        animationSpec = tween(180),
+        label = "floatingToolbarScale",
+    )
+
+    LaunchedEffect(tapCount) {
+        if (tapCount == 0) return@LaunchedEffect
+        rotation.snapTo(0f)
+        when (tab) {
+            Tab.ALARMS -> {
+                rotation.animateTo(-5f, tween(65))
+                rotation.animateTo(5f, tween(85))
+                rotation.animateTo(-3f, tween(65))
+                rotation.animateTo(0f, tween(65))
+            }
+            Tab.TIMERS -> rotation.animateTo(180f, tween(320))
+            Tab.STOPWATCH -> rotation.animateTo(360f, tween(420))
+        }
+        rotation.snapTo(0f)
+    }
+
+    ToggleButton(
+        checked = selected,
+        shapes = ToggleButtonShapes(
+            shape = CircleShape,
+            pressedShape = CircleShape,
+            checkedShape = CircleShape,
+        ),
+        onCheckedChange = {
+            tapCount++
+            onClick()
+        },
+        colors = ToggleButtonDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+        modifier = Modifier.height(56.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Crossfade(
+                targetState = selected,
+                label = "navigationIcon",
+            ) { isSelected ->
+                Icon(
+                    imageVector = tab.icon,
+                    contentDescription = tab.label,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = selectedScale
+                        scaleY = selectedScale
+                        rotationZ = rotation.value
+                        cameraDistance = 18f * density
+                    },
+                )
+            }
+
+            AnimatedVisibility(
+                visible = selected,
+                enter = expandHorizontally(
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                ) + fadeIn(),
+                exit = shrinkHorizontally(
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                ) + fadeOut(),
+            ) {
+                Text(
+                    text = tab.label,
+                    maxLines = 1,
+                    fontWeight = FontWeight.ExtraBold,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.padding(start = ButtonDefaults.IconSpacing),
+                )
+            }
         }
     }
 }
