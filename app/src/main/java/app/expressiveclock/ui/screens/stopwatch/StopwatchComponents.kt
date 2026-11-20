@@ -1,4 +1,8 @@
-package app.expressiveclock.ui.screens
+package app.expressiveclock.ui.screens.stopwatch
+
+import app.expressiveclock.ui.screens.DigitRow
+import app.expressiveclock.ui.screens.ROW_INK_INSET
+import app.expressiveclock.ui.screens.progressiveListEdgeMask
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -100,192 +104,10 @@ import app.expressiveclock.ui.responsive.TwoPaneLayout
  * The fastest and slowest laps are marked in tertiary and error. That is not in the renders; it is
  * the one addition, on the grounds that a lap list nobody can compare is just a receipt.
  */
-@Composable
-fun StopwatchScreen(
-    stopwatch: Stopwatch,
-    nowElapsedMillis: Long,
-    onToggle: () -> Unit,
-    onLap: () -> Unit,
-    onReset: () -> Unit,
-    contentPadding: PaddingValues,
-    modifier: Modifier = Modifier,
-) {
-    val elapsed = stopwatch.elapsed(nowElapsedMillis)
-    val fastest = stopwatch.fastest
-    val slowest = stopwatch.slowest
-    val listState = rememberLazyListState()
-    val view = LocalView.current
-    var previousRunning by remember { mutableStateOf<Boolean?>(null) }
-
-    val faceScale = remember { Animatable(1f) }
-    var previousRunningForScale by remember { mutableStateOf<Boolean?>(null) }
-
-    LaunchedEffect(stopwatch.running) {
-        val prevScale = previousRunningForScale
-        previousRunningForScale = stopwatch.running
-        if (prevScale != null && prevScale != stopwatch.running) {
-            faceScale.snapTo(0.95f)
-            faceScale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = 0.58f,
-                    stiffness = 380f,
-                ),
-            )
-        }
-    }
-
-    LaunchedEffect(stopwatch.running) {
-        val prev = previousRunning
-        previousRunning = stopwatch.running
-        if (prev != null && prev != stopwatch.running) {
-            if (stopwatch.running) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    view.performHapticFeedback(HapticFeedbackConstants.GESTURE_START)
-                } else {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                }
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
-                } else {
-                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                }
-            }
-        }
-    }
-
-    val handleReset = {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
-        onReset()
-    }
-
-    if (LocalAppWindowSizeInfo.current.isExpanded) {
-        ExpandedStopwatch(
-            stopwatch = stopwatch,
-            elapsedMillis = elapsed.toMillis(),
-            faceScale = faceScale.value,
-            onToggle = onToggle,
-            onLap = onLap,
-            onReset = handleReset,
-            contentPadding = contentPadding,
-            modifier = modifier,
-        )
-        return
-    }
-
-    val density = LocalDensity.current
-    val scope = rememberCoroutineScope()
-    var displayedLaps by remember { mutableStateOf(stopwatch.laps) }
-    val lapsAlpha = remember { Animatable(1f) }
-
-    LaunchedEffect(stopwatch.laps) {
-        val currentLaps = stopwatch.laps
-        if (currentLaps.size > displayedLaps.size) {
-            // Restore the original spring glide and overshoot on lap insertion.
-            lapsAlpha.snapTo(1f)
-            displayedLaps = currentLaps
-            val lapRowHeightPx = with(density) { (LAP_ROW_HEIGHT + 14.dp).toPx() }
-            listState.animateScrollBy(
-                value = lapRowHeightPx,
-                animationSpec = spring(
-                    dampingRatio = 0.68f,
-                    stiffness = 320f,
-                ),
-            )
-        } else if (currentLaps.isEmpty() && displayedLaps.isNotEmpty()) {
-            // Reset: fade out lap bars while gliding scroll back up to top (item 0)
-            val fadeJob = scope.launch {
-                lapsAlpha.animateTo(
-                    targetValue = 0f,
-                    animationSpec = tween(
-                        durationMillis = 280,
-                        easing = FastOutSlowInEasing,
-                    ),
-                )
-            }
-            listState.animateScrollToItem(index = 0, scrollOffset = 0)
-            fadeJob.join()
-            displayedLaps = emptyList()
-            lapsAlpha.snapTo(1f)
-        } else {
-            lapsAlpha.snapTo(1f)
-            displayedLaps = currentLaps
-        }
-    }
-
-    val effectiveBottomPadding = if (displayedLaps.isNotEmpty()) {
-        contentPadding.calculateBottomPadding() + 140.dp
-    } else {
-        contentPadding.calculateBottomPadding()
-    }
-
-    FixedEdgeBlurContainer(
-        topInset = contentPadding.calculateTopPadding(),
-        bottomInset = contentPadding.calculateBottomPadding(),
-        modifier = modifier.fillMaxSize(),
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = displayedLaps.isNotEmpty() || LocalAppWindowSizeInfo.current.isHeightCompact,
-            contentPadding = PaddingValues(
-                top = contentPadding.calculateTopPadding(),
-                bottom = effectiveBottomPadding,
-            ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item(key = "face") {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(540.dp)
-                        .graphicsLayer {
-                            scaleX = faceScale.value
-                            scaleY = faceScale.value
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    StopwatchFace(
-                        elapsedMillis = elapsed.toMillis(),
-                        running = stopwatch.running,
-                        onToggle = onToggle,
-                    )
-                }
-            }
-            item(key = "controls") {
-                StopwatchControls(
-                    idle = !stopwatch.running && elapsed.isZero,
-                    running = stopwatch.running,
-                    onToggle = onToggle,
-                    onLap = onLap,
-                    onReset = handleReset,
-                )
-            }
-            if (displayedLaps.isNotEmpty()) {
-                items(displayedLaps, key = { it.index }) { lap ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .graphicsLayer { alpha = lapsAlpha.value },
-                    ) {
-                        LapRow(lap, fastest == lap.index, slowest == lap.index)
-                    }
-                }
-            }
-        }
-    }
-}
 
 /** The dial and controls stay fixed; only the right-hand lap viewport scrolls. */
 @Composable
-private fun ExpandedStopwatch(
+internal fun ExpandedStopwatch(
     stopwatch: Stopwatch,
     elapsedMillis: Long,
     faceScale: Float,
@@ -425,7 +247,7 @@ private fun ExpandedStopwatch(
 
 /** A single reversible spatial spring connects the centred pill to the three-button stack. */
 @Composable
-private fun ExpandedStopwatchControls(
+internal fun ExpandedStopwatchControls(
     idle: Boolean,
     running: Boolean,
     expansion: Float,
@@ -488,7 +310,7 @@ private fun ExpandedStopwatchControls(
 }
 
 @Composable
-private fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -> Unit) {
+internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -> Unit) {
     val safeMillis = elapsedMillis.coerceAtLeast(0L)
     val hundredths = ((safeMillis % 1000L) / 10L).toInt()
     val minutes = (safeMillis / 60000L).toInt()
@@ -630,7 +452,7 @@ private fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () ->
     }
 }
 
-private val STOPWATCH_FACE_SIZE = 410.dp
+internal val STOPWATCH_FACE_SIZE = 410.dp
 
 /**
  * The controls: **one row, one height, two states, and a morph between them.**
@@ -656,7 +478,7 @@ private val STOPWATCH_FACE_SIZE = 410.dp
  * band a constant, the same on a fresh screen as on a full one.
  */
 @Composable
-private fun StopwatchButton(
+internal fun StopwatchButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -719,7 +541,7 @@ private fun StopwatchButton(
 }
 
 @Composable
-private fun StopwatchControls(
+internal fun StopwatchControls(
     idle: Boolean,
     running: Boolean,
     onToggle: () -> Unit,
@@ -926,21 +748,21 @@ private fun StopwatchControls(
 }
 
 /** How long the pill has to finish growing before the row is allowed to divide. */
-private const val EXPAND_LEAD_MS = 95
-private const val SPLIT_MS = 150
-private const val LABEL_FADE_MS = 70
+internal const val EXPAND_LEAD_MS = 95
+internal const val SPLIT_MS = 150
+internal const val LABEL_FADE_MS = 70
 
 /** Roomier than the three-abreast pills: this one is not fighting two neighbours for width. */
-private val IDLE_PADDING_H = 28.dp
+internal val IDLE_PADDING_H = 28.dp
 
 /** `StackedDigits` sets its rows 35 dp apart; the button sits on the same rhythm. */
-private val STACK_GAP = 35.dp
+internal val STACK_GAP = 35.dp
 
 /** Shared so the Start button can be measured against a row drawn at the same size. */
-private val READOUT_CAP = 66.dp
+internal val READOUT_CAP = 66.dp
 
-private val GAP = 6.dp
-private val ROW_HEIGHT = 64.dp
+internal val GAP = 6.dp
+internal val ROW_HEIGHT = 64.dp
 
 /**
  * Lap rows are deliberately shorter than a list item usually is. Every dp here buys list, and the
@@ -948,11 +770,11 @@ private val ROW_HEIGHT = 64.dp
  * height a two-line item would. At [LAP_ROW_HEIGHT] plus [LAP_GAP] a lap costs 52 dp, so the
  * four-lap control layout shows three of them where the old 124 dp cap showed one.
  */
-private val LAP_ROW_HEIGHT = 48.dp
-private val LAP_GAP = 4.dp
+internal val LAP_ROW_HEIGHT = 48.dp
+internal val LAP_GAP = 4.dp
 
 @Composable
-private fun LapRow(lap: Lap, isFastest: Boolean, isSlowest: Boolean, compact: Boolean = false) {
+internal fun LapRow(lap: Lap, isFastest: Boolean, isSlowest: Boolean, compact: Boolean = false) {
     val badge = when {
         isFastest -> MaterialTheme.colorScheme.tertiaryContainer
         isSlowest -> MaterialTheme.colorScheme.errorContainer

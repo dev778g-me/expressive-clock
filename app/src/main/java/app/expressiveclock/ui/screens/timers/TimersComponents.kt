@@ -1,4 +1,4 @@
-package app.expressiveclock.ui.screens
+package app.expressiveclock.ui.screens.timers
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
@@ -97,6 +97,8 @@ import app.expressiveclock.data.DEFAULT_TIMER_PRESETS
 import app.expressiveclock.data.formatPresetLabel
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
+import app.expressiveclock.ui.screens.DigitRow
+import app.expressiveclock.ui.screens.PILL_HEIGHT_DP
 import app.expressiveclock.ui.theme.ClockFace
 import app.expressiveclock.ui.theme.Numerals
 import kotlinx.coroutines.delay
@@ -105,171 +107,15 @@ import java.time.Duration
 import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
-@Composable
-fun TimersScreen(
-    timer: ClockTimer?,
-    draft: Duration,
-    nowElapsedMillis: Long,
-    presets: List<Int> = DEFAULT_TIMER_PRESETS,
-    onDigit: (Char) -> Unit,
-    onBackspace: () -> Unit,
-    onResetDraft: () -> Unit,
-    onPreset: (Int) -> Unit,
-    onStart: () -> Unit,
-    onPauseResume: () -> Unit,
-    onAddTen: () -> Unit,
-    onCancel: () -> Unit,
-    contentPadding: PaddingValues,
-    modifier: Modifier = Modifier,
-) {
-    val active = timer != null
-    val remaining = timer?.remaining(nowElapsedMillis) ?: Duration.ZERO
-    val isFinished = timer?.state == TimerState.FINISHED || (timer?.state == TimerState.RUNNING && remaining.isZero)
-    val running = timer?.state == TimerState.RUNNING && !isFinished
-    val windowSizeInfo = LocalAppWindowSizeInfo.current
 
-    if (windowSizeInfo.isExpanded) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(contentPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            AnimatedContent(
-                modifier = Modifier.graphicsLayer { clip = false },
-                targetState = active,
-                transitionSpec = {
-                    if (targetState) {
-                        slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = 420f,
-                            ),
-                            initialOffsetY = { it / 5 },
-                        ) + fadeIn(tween(220)) togetherWith
-                            (slideOutVertically(
-                                animationSpec = tween(160),
-                                targetOffsetY = { -it / 10 },
-                            ) + fadeOut(tween(140))) using SizeTransform(clip = false)
-                    } else {
-                        slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = 420f,
-                            ),
-                            initialOffsetY = { -it / 10 },
-                        ) + fadeIn(tween(220)) togetherWith
-                            (slideOutVertically(
-                                animationSpec = tween(160),
-                                targetOffsetY = { it / 5 },
-                            ) + fadeOut(tween(140))) using SizeTransform(clip = false)
-                    }
-                },
-                label = "timerBodyExpanded",
-            ) { showingActive ->
-                if (showingActive && timer != null) {
-                    ExpandedRunningTimerBody(
-                        timer = timer,
-                        nowElapsedMillis = nowElapsedMillis,
-                        isFinished = isFinished,
-                        onPauseResume = onPauseResume,
-                        onAddTen = onAddTen,
-                        onCancel = onCancel,
-                    )
-                } else {
-                    ExpandedSetTimerBody(
-                        draft = draft,
-                        presets = presets,
-                        onDigit = onDigit,
-                        onBackspace = onBackspace,
-                        onResetDraft = onResetDraft,
-                        onPreset = onPreset,
-                        onStart = onStart,
-                    )
-                }
-            }
-        }
-    } else {
-        Column(
-            modifier = modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Box(
-                Modifier.fillMaxWidth().weight(1f).then(
-                    if (windowSizeInfo.isHeightCompact) Modifier.verticalScroll(rememberScrollState())
-                    else Modifier,
-                ),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                AnimatedContent(
-                    modifier = Modifier.graphicsLayer { clip = false },
-                    targetState = active,
-                    transitionSpec = {
-                        if (targetState) {
-                            slideInVertically(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = 420f,
-                                ),
-                                initialOffsetY = { it / 5 },
-                            ) + fadeIn(tween(220)) togetherWith
-                                (slideOutVertically(
-                                    animationSpec = tween(160),
-                                    targetOffsetY = { -it / 10 },
-                                ) + fadeOut(tween(140))) using SizeTransform(clip = false)
-                        } else {
-                            slideInVertically(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = 420f,
-                                ),
-                                initialOffsetY = { -it / 10 },
-                            ) + fadeIn(tween(220)) togetherWith
-                                (slideOutVertically(
-                                    animationSpec = tween(160),
-                                    targetOffsetY = { it / 5 },
-                                ) + fadeOut(tween(140))) using SizeTransform(clip = false)
-                        }
-                    },
-                    label = "timerBody",
-                ) { showingActive ->
-                    if (showingActive && timer != null) {
-                        RunningTimerBody(timer, nowElapsedMillis, isFinished)
-                    } else {
-                        SetTimerBody(
-                            draft = draft,
-                            presets = presets,
-                            onDigit = onDigit,
-                            onBackspace = onBackspace,
-                            onResetDraft = onResetDraft,
-                            onPreset = onPreset,
-                        )
-                    }
-                }
-            }
-
-            TimerControls(
-                hasTimer = active,
-                running = running,
-                isFinished = isFinished,
-                onStart = onStart,
-                onPauseResume = onPauseResume,
-                onAddTen = onAddTen,
-                onCancel = onCancel,
-            )
-            Spacer(Modifier.height(10.dp))
-        }
-    }
-}
-
-private fun formatTimer(duration: Duration): String {
+internal fun formatTimer(duration: Duration): String {
     val total = duration.seconds.coerceAtLeast(0)
     return "%02d:%02d:%02d".format(total / 3600, (total % 3600) / 60, total % 60)
 }
 
-private enum class TimerRollDirection { UP, DOWN }
+internal enum class TimerRollDirection { UP, DOWN }
 
-private fun Modifier.featheredVerticalViewport(
+internal fun Modifier.featheredVerticalViewport(
     active: Boolean,
     fadeHeightFraction: Float = 0.18f,
 ): Modifier = if (!active) this else this
@@ -296,7 +142,7 @@ private fun Modifier.featheredVerticalViewport(
     }
 
 @Composable
-private fun UpwardSetupDigitCell(
+internal fun UpwardSetupDigitCell(
     char: Char,
     width: Dp,
     capHeight: Dp,
@@ -420,7 +266,7 @@ private fun UpwardSetupDigitCell(
 }
 
 @Composable
-private fun TickerTimerReadout(
+internal fun TickerTimerReadout(
     text: String,
     capHeight: Dp = 72.dp,
     color: Color = MaterialTheme.colorScheme.onSurface,
@@ -545,7 +391,7 @@ private fun TickerTimerReadout(
  * the surrounding screen API.
  */
 @Composable
-private fun BoxWithConstraintsCompat(
+internal fun BoxWithConstraintsCompat(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment,
     content: @Composable androidx.compose.foundation.layout.BoxWithConstraintsScope.() -> Unit,
@@ -558,7 +404,7 @@ private fun BoxWithConstraintsCompat(
 }
 
 @Composable
-private fun TickerCell(
+internal fun TickerCell(
     char: Char,
     width: androidx.compose.ui.unit.Dp,
     capHeight: androidx.compose.ui.unit.Dp,
@@ -656,7 +502,7 @@ private fun TickerCell(
 }
 
 @Composable
-private fun ExpandedSetTimerBody(
+internal fun ExpandedSetTimerBody(
     draft: Duration,
     presets: List<Int>,
     onDigit: (Char) -> Unit,
@@ -749,7 +595,7 @@ private fun ExpandedSetTimerBody(
 }
 
 @Composable
-private fun ExpandedRunningTimerBody(
+internal fun ExpandedRunningTimerBody(
     timer: ClockTimer,
     nowElapsedMillis: Long,
     isFinished: Boolean = false,
@@ -906,7 +752,7 @@ private fun ExpandedRunningTimerBody(
 }
 
 @Composable
-private fun SetTimerBody(
+internal fun SetTimerBody(
     draft: Duration,
     presets: List<Int>,
     onDigit: (Char) -> Unit,
@@ -960,7 +806,7 @@ private fun SetTimerBody(
 }
 
 @Composable
-private fun Presets(
+internal fun Presets(
     presets: List<Int>,
     onPreset: (Int) -> Unit,
 ) {
@@ -992,7 +838,7 @@ private fun Presets(
 }
 
 @Composable
-private fun TimerButton(
+internal fun TimerButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1057,7 +903,7 @@ private fun TimerButton(
 }
 
 @Composable
-private fun PresetButton(seconds: Int, onClick: () -> Unit) {
+internal fun PresetButton(seconds: Int, onClick: () -> Unit) {
     FilledTonalButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().height(54.dp),
@@ -1072,7 +918,7 @@ private fun PresetButton(seconds: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Keypad(onDigit: (Char) -> Unit, onBackspace: () -> Unit, onResetDraft: () -> Unit) {
+internal fun Keypad(onDigit: (Char) -> Unit, onBackspace: () -> Unit, onResetDraft: () -> Unit) {
     val view = LocalView.current
     val rows = listOf("123", "456", "789")
     Column(
@@ -1112,7 +958,7 @@ private fun Keypad(onDigit: (Char) -> Unit, onBackspace: () -> Unit, onResetDraf
 }
 
 @Composable
-private fun DigitKey(digit: Char, onDigit: (Char) -> Unit, modifier: Modifier = Modifier) {
+internal fun DigitKey(digit: Char, onDigit: (Char) -> Unit, modifier: Modifier = Modifier) {
     val view = LocalView.current
     KeyBox(modifier = modifier, onClick = {
         onDigit(digit)
@@ -1129,7 +975,7 @@ private fun DigitKey(digit: Char, onDigit: (Char) -> Unit, modifier: Modifier = 
 }
 
 @Composable
-private fun KeyBox(
+internal fun KeyBox(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
@@ -1190,7 +1036,7 @@ private fun KeyBox(
 }
 
 @Composable
-private fun RunningTimerBody(
+internal fun RunningTimerBody(
     timer: ClockTimer,
     nowElapsedMillis: Long,
     isFinished: Boolean = false,
@@ -1249,7 +1095,7 @@ private fun RunningTimerBody(
 
 /** Material Expressive-inspired organic progress ring. */
 @Composable
-private fun ExpressiveTimerRing(progress: Float, color: Color, running: Boolean) {
+internal fun ExpressiveTimerRing(progress: Float, color: Color, running: Boolean) {
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
     val strokeWidthPx = with(LocalDensity.current) { 16.dp.toPx() }
     val stroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx, cap = StrokeCap.Round) }
@@ -1273,7 +1119,7 @@ private fun ExpressiveTimerRing(progress: Float, color: Color, running: Boolean)
         gapSize = 8.dp,
     )
 }
-private fun buildSquigglePath(
+internal fun buildSquigglePath(
     center: Offset,
     radius: Float,
     startDegrees: Float,
@@ -1318,7 +1164,7 @@ private fun buildSquigglePath(
 }
 
 @Composable
-private fun TimerControls(
+internal fun TimerControls(
     hasTimer: Boolean,
     running: Boolean,
     isFinished: Boolean = false,
@@ -1528,10 +1374,10 @@ private fun TimerControls(
     }
 }
 
-private val TIMER_GAP = 6.dp
-private val TIMER_ROW_HEIGHT = 64.dp
-private val TIMER_ROW_INSET = 10.dp
-private const val TIMER_EXPAND_LEAD_MS = 95
-private const val TIMER_SPLIT_MS = 150
-private const val TIMER_LABEL_FADE_MS = 70
+internal val TIMER_GAP = 6.dp
+internal val TIMER_ROW_HEIGHT = 64.dp
+internal val TIMER_ROW_INSET = 10.dp
+internal const val TIMER_EXPAND_LEAD_MS = 95
+internal const val TIMER_SPLIT_MS = 150
+internal const val TIMER_LABEL_FADE_MS = 70
 

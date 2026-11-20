@@ -1,4 +1,4 @@
-package app.expressiveclock.ui.screens
+package app.expressiveclock.ui.screens.settings
 
 import android.R
 import android.app.Activity
@@ -178,538 +178,6 @@ import app.expressiveclock.overlay.OverlayManager
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
 
-@Composable
-fun SettingsScreen(
-    settings: ClockSettings,
-    onChange: ((ClockSettings) -> ClockSettings) -> Unit,
-    onBack: () -> Unit,
-    onReopenOnboarding: () -> Unit = {},
-) {
-    val context = LocalContext.current
-    var picker by remember { mutableStateOf<SettingsPicker?>(null) }
-    var showThemePresets by remember { mutableStateOf(false) }
-    var showCalibrationDialog by remember { mutableStateOf(false) }
-    var showAccessibilityPromptDialog by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
-    val fadeDistance = with(LocalDensity.current) { 32.dp.toPx() }
-    val headerFalloff by animateFloatAsState(
-        targetValue = (scrollState.value / fadeDistance).coerceIn(0f, 1f),
-        label = "settingsHeaderFalloff",
-    )
-
-    val appUpdateManager = remember(context) { AppUpdateManagerFactory.create(context) }
-    var isCheckingUpdates by remember { mutableStateOf(false) }
-
-    DisposableEffect(appUpdateManager) {
-        val listener = InstallStateUpdatedListener { state ->
-            if (state.installStatus() == InstallStatus.DOWNLOADED) {
-                Toast.makeText(context, "Update ready to install.", Toast.LENGTH_LONG).show()
-                appUpdateManager.completeUpdate()
-            }
-        }
-        appUpdateManager.registerListener(listener)
-        onDispose {
-            appUpdateManager.unregisterListener(listener)
-        }
-    }
-
-    fun checkForUpdates() {
-        isCheckingUpdates = true
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
-            isCheckingUpdates = false
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-            ) {
-                val activity = context as? Activity
-                if (activity != null) {
-                    runCatching {
-                        appUpdateManager.startUpdateFlowForResult(
-                            appUpdateInfo,
-                            AppUpdateType.FLEXIBLE,
-                            activity,
-                            9001,
-                        )
-                    }.onFailure {
-                        Toast.makeText(context, "Couldn't check for updates.", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    Toast.makeText(context, "Couldn't check for updates.", Toast.LENGTH_SHORT).show()
-                }
-            } else if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                Toast.makeText(context, "An update is already in progress.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "You're up to date", Toast.LENGTH_SHORT).show()
-            }
-        }.addOnFailureListener { ex ->
-            isCheckingUpdates = false
-            Log.e("SettingsScreen", "Failed to check for updates", ex)
-            Toast.makeText(context, "Couldn't check for updates.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val timerSoundLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val picked: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            }
-            val uriString = picked?.toString() ?: SILENT
-            onChange { it.copy(timers = it.timers.copy(soundUri = uriString)) }
-        }
-    }
-
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentWindowInsets = WindowInsets(bottom = 0.dp),
-        topBar = {
-            MediumFlexibleTopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Outlined.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            val category: SettingsCategory? = null
-                SettingsCard(title = "Appearance") {
-                    ListItem(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .expandedSettingsTile()
-                            .clip(joinedBlockShape(isFirst = true, isLast = false))
-                            .padding(vertical = 1.dp),
-                        shapes = ListItemDefaults.shapes(
-                            shape = joinedBlockShape(isFirst = true, isLast = false),
-                        ),
-                        colors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
-                        ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        leadingContent = {
-                            SettingIcon(Icons.Outlined.SettingsBrightness)
-                        },
-                        supportingContent = {
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 4.dp),
-                            ) {
-                                DarkMode.entries.forEachIndexed { index, mode ->
-                                    SegmentedButton(
-                                        selected = settings.theme.darkMode == mode,
-                                        onClick = {
-                                            onChange { it.copy(theme = it.theme.copy(darkMode = mode)) }
-                                        },
-                                        shape = SegmentedButtonDefaults.itemShape(
-                                            index = index,
-                                            count = DarkMode.entries.size,
-                                        ),
-                                    ) {
-                                        Text(mode.label, style = MaterialTheme.typography.labelMedium)
-                                    }
-                                }
-                            }
-                        },
-                    ) {
-                        Text("Theme")
-                    }
-                    SettingsSwitchRow(
-                        icon = Icons.Outlined.Contrast,
-                        title = "Pure black",
-                        subtitle = "Use true black surfaces in dark mode",
-                        checked = settings.theme.amoledBlack,
-                        isFirst = false,
-                        isLast = false,
-                        onCheckedChange = { value ->
-                            onChange { it.copy(theme = it.theme.copy(amoledBlack = value)) }
-                        },
-                    )
-                    SettingsSwitchRow(
-                        icon = Icons.Outlined.Palette,
-                        title = "Dynamic theme",
-                        subtitle = "Use wallpaper colours",
-                        checked = settings.theme.dynamicColor,
-                        isFirst = false,
-                        // With the wallpaper theme on, everything below collapses and this
-                        // becomes the last row in the card — so its bottom corners round.
-                        isLast = settings.theme.dynamicColor,
-                        onCheckedChange = { value ->
-                            onChange { it.copy(theme = it.theme.copy(dynamicColor = value)) }
-                        },
-                    )
-                    // Wallpaper colour off? The preset row is the only thing left, so it carries
-                    // the bottom corners of the card. Wallpaper on? It leaves with a vertical
-                    // collapse rather than popping out.
-                    AnimatedVisibility(
-                        visible = !settings.theme.dynamicColor,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        SettingsNavigateRow(
-                            icon = Icons.Outlined.Palette,
-                            title = "Theme presets",
-                            subtitle = themePresetLabel(settings.theme),
-                            isFirst = false,
-                            isLast = true,
-                            onClick = { showThemePresets = true },
-                        )
-                    }
-                }
-
-                if (showThemePresets) {
-                    ThemePresetSheet(
-                        theme = settings.theme,
-                        isDark = when (settings.theme.darkMode) {
-                            DarkMode.SYSTEM -> isSystemInDarkTheme()
-                            DarkMode.LIGHT -> false
-                            DarkMode.DARK -> true
-                        },
-                        onThemeChange = { next -> onChange { it.copy(theme = next) } },
-                        onDismiss = { showThemePresets = false },
-                    )
-                }
-
-            if (category == null || category == SettingsCategory.ALARMS) SettingsCard(title = "Alarms") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.NotificationsNone,
-                    title = "Silence after",
-                    subtitle = minutesLabel(settings.alarms.silenceAfterMinutes),
-                    isFirst = true,
-                    onClick = { picker = SettingsPicker.SILENCE },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.Snooze,
-                    title = "Snooze length",
-                    subtitle = minutesLabel(settings.alarms.snoozeMinutes),
-                    onClick = { picker = SettingsPicker.SNOOZE },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.CalendarMonth,
-                    title = "Start week on",
-                    subtitle = settings.alarms.weekStart.label,
-                    isLast = true,
-                    onClick = { picker = SettingsPicker.WEEK_START },
-                )
-            }
-
-            if (category == null || category == SettingsCategory.TIMERS) SettingsCard(title = "Timers") {
-                val timerSoundSubtitle = remember(settings.timers.soundUri) {
-                    when (val u = settings.timers.soundUri) {
-                        null -> "Default alarm sound"
-                        SILENT -> "Silent"
-                        else -> runCatching {
-                            RingtoneManager.getRingtone(context, Uri.parse(u))?.getTitle(context)
-                        }.getOrNull() ?: "Default alarm sound"
-                    }
-                }
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.MusicNote,
-                    title = "Timer sound",
-                    subtitle = timerSoundSubtitle,
-                    isFirst = true,
-                    onClick = {
-                        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Timer sound")
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                            val currentUri = settings.timers.soundUri
-                            if (currentUri != SILENT) {
-                                val uriToPass = currentUri?.let(Uri::parse)
-                                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, uriToPass)
-                            }
-                        }
-                        timerSoundLauncher.launch(intent)
-                    },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.Timer,
-                    title = "Timer presets",
-                    subtitle = settings.timers.presets.joinToString(", ") { formatPresetLabel(it) },
-                    onClick = { picker = SettingsPicker.PRESETS },
-                )
-SettingsSwitchRow(
-                    icon = Icons.Outlined.HourglassEmpty,
-                    title = "Timer vibration",
-                    subtitle = "Vibrate when a timer finishes",
-                    checked = settings.timers.vibrate,
-                    isFirst = false,
-                    isLast = false,
-                    onCheckedChange = { value ->
-                        onChange { it.copy(timers = it.timers.copy(vibrate = value)) }
-                    },
-                )
-val isAccConnected = checkAccessibilityGranted(context)
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Timer,
-                    title = "Dynamic Island overlay",
-                    subtitle = "Show timer & stopwatch controls over other apps",
-                    checked = settings.theme.dynamicIsland,
-                    isLast = true,
-                    onCheckedChange = { enable ->
-                        if (enable) {
-                            onChange { it.copy(theme = it.theme.copy(dynamicIsland = true)) }
-                            if (!isAccConnected) {
-                                showAccessibilityPromptDialog = true
-                            }
-                        } else {
-                            onChange { it.copy(theme = it.theme.copy(dynamicIsland = false)) }
-                        }
-                    },
-                )
-                AnimatedVisibility(
-                    visible = settings.theme.dynamicIsland,
-                    enter = expandVertically(animationSpec = spring(stiffness = 450f, dampingRatio = 0.8f)) + fadeIn(animationSpec = tween(180)),
-                    exit = shrinkVertically(animationSpec = spring(stiffness = 450f, dampingRatio = 0.8f)) + fadeOut(animationSpec = tween(150)),
-                ) {
-                    Column {
-SettingsNavigateRow(
-                            icon = Icons.Outlined.Timer,
-                            title = "Position calibration",
-                            subtitle = "Fine-tune horizontal & vertical alignment",
-                            onClick = { showCalibrationDialog = true },
-                        )
-                        if (!isAccConnected) {
-SettingsNavigateRow(
-                                icon = Icons.Outlined.Timer,
-                                title = "Enable status bar overlay",
-                                subtitle = "Draw above system status bars via Accessibility",
-                                onClick = { showAccessibilityPromptDialog = true },
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (category == null || category == SettingsCategory.MISCELLANEOUS) SettingsCard(title = "MISCELLANEOUS") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.Home,
-                    title = "Default startup page",
-                    subtitle = settings.defaultStartupPage.label,
-                    isFirst = true,
-                    onClick = { picker = SettingsPicker.STARTUP_PAGE },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.HourglassEmpty,
-                    title = "Show setup again",
-                    subtitle = "Reopen the first-launch permissions setup",
-                    isLast = true,
-                    onClick = onReopenOnboarding,
-                )
-            }
-
-            if (category == null || category == SettingsCategory.ABOUT) SettingsCard(title = "About") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.SystemUpdate,
-                    title = "Check for updates",
-                    subtitleContent = {
-                        AnimatedContent(
-                            targetState = if (isCheckingUpdates) "Checking for updates" else "Keep Expressive Clock up to date",
-                            transitionSpec = {
-                                (slideInVertically(
-                                    animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-                                    initialOffsetY = { height -> height / 2 },
-                                ) + fadeIn(tween(durationMillis = 200))) togetherWith
-                                    (slideOutVertically(
-                                        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                                        targetOffsetY = { height -> -height / 2 },
-                                    ) + fadeOut(tween(durationMillis = 180)))
-                            },
-                            label = "updateSubtitleTransition",
-                        ) { targetText ->
-                            Text(
-                                text = targetText,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
-                    },
-                    isFirst = true,
-                    onClick = {
-                        if (!isCheckingUpdates) {
-                            checkForUpdates()
-                        }
-                    },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.PrivacyTip,
-                    title = "Privacy",
-                    subtitle = "No accounts, no telemetry, no network",
-                    onClick = { picker = SettingsPicker.PRIVACY },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.PrivacyTip,
-                    title = "Privacy policy",
-                    subtitle = "Read how Expressive Clock handles your data",
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://samuelbeckman.github.io/expressive-clock/privacy-policy.html"),
-                        )
-                        runCatching { context.startActivity(intent) }
-                            .onFailure {
-                                Toast.makeText(context, "Couldn't open the privacy policy.", Toast.LENGTH_SHORT).show()
-                            }
-                    },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.Info,
-                    title = "App version",
-                    subtitle = "Clock ${app.expressiveclock.BuildConfig.VERSION_NAME}",
-                    isLast = true,
-                    onClick = {},
-                )
-            }
-
-            Spacer(Modifier.height(4.dp))
-            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-        }
-    }
-}
-
-    picker?.let { current ->
-        when (current) {
-            SettingsPicker.THEME -> ThemePickerDialog(
-                value = settings.theme.darkMode,
-                onDismiss = { picker = null },
-                onSelect = { value ->
-                    onChange { it.copy(theme = it.theme.copy(darkMode = value)) }
-                    picker = null
-                },
-            )
-            SettingsPicker.SILENCE -> ChoicePickerSheet(
-                title = "Silence after",
-                options = listOf(1, 5, 10, 15, 20, 25, 30, 0),
-                selected = settings.alarms.silenceAfterMinutes,
-                label = ::minutesLabel,
-                onDismiss = { picker = null },
-                onSelect = { value ->
-                    onChange { it.copy(alarms = it.alarms.copy(silenceAfterMinutes = value)) }
-                    picker = null
-                },
-            )
-            SettingsPicker.SNOOZE -> ChoicePickerSheet(
-                title = "Snooze length",
-                options = listOf(1, 5, 10, 15, 20, 30),
-                selected = settings.alarms.snoozeMinutes,
-                label = ::minutesLabel,
-                onDismiss = { picker = null },
-                onSelect = { value ->
-                    onChange { it.copy(alarms = it.alarms.copy(snoozeMinutes = value)) }
-                    picker = null
-                },
-            )
-            SettingsPicker.WEEK_START -> ChoicePickerSheet(
-                title = "Start week on",
-                options = WeekStart.entries,
-                selected = settings.alarms.weekStart,
-                label = { it.label },
-                onDismiss = { picker = null },
-                onSelect = { value ->
-                    onChange { it.copy(alarms = it.alarms.copy(weekStart = value)) }
-                    picker = null
-                },
-            )
-            SettingsPicker.PRESETS -> TimerPresetsSheet(
-                presets = settings.timers.presets,
-                onDismiss = { picker = null },
-                onSave = { newPresets ->
-                    onChange { it.copy(timers = it.timers.copy(presets = newPresets)) }
-                    picker = null
-                },
-            )
-            SettingsPicker.STARTUP_PAGE -> ChoicePickerSheet(
-                title = "Default startup page",
-                options = DefaultStartupPage.entries,
-                selected = settings.defaultStartupPage,
-                label = { it.label },
-                onDismiss = { picker = null },
-                onSelect = { selected ->
-                    onChange { it.copy(defaultStartupPage = selected) }
-                    picker = null
-                },
-            )
-            SettingsPicker.PRIVACY -> PrivacyDialog(onDismiss = { picker = null })
-        }
-    }
-
-    if (showCalibrationDialog) {
-        OverlayCalibrationDialog(
-            settings = settings,
-            onDismiss = { showCalibrationDialog = false },
-            onChange = onChange,
-        )
-    }
-
-    if (showAccessibilityPromptDialog) {
-        AlertDialog(
-            onDismissRequest = { showAccessibilityPromptDialog = false },
-            title = { Text("Accessibility service required") },
-            text = {
-                Text(
-                    "Expressive Clock uses Android's AccessibilityService API only to display " +
-                        "active timer countdowns and stopwatch controls over other apps and system bars. " +
-                        "The service does not read screen content, collect personal or sensitive user data, " +
-                        "or share data. If you choose Continue, Android will open Accessibility settings " +
-                        "where you can enable the service. This access is optional and is used for the " +
-                        "Dynamic Island overlay feature.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showAccessibilityPromptDialog = false
-                        runCatching {
-                            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(intent)
-                            Toast.makeText(context, "Tap Expressive Clock and turn on Accessibility.", Toast.LENGTH_LONG).show()
-                        }
-                    },
-                ) {
-                    Text("Continue")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showAccessibilityPromptDialog = false
-                        onChange { it.copy(theme = it.theme.copy(dynamicIsland = false)) }
-                    },
-                ) {
-                    Text("Not now")
-                }
-            },
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -787,7 +255,7 @@ fun <T> ChoicePickerSheet(
     }
 }
 
-private enum class SettingsCategory(val title: String, val subtitle: String, val icon: ImageVector) {
+internal enum class SettingsCategory(val title: String, val subtitle: String, val icon: ImageVector) {
     APPEARANCE("Appearance", "Theme, colours and display", Icons.Outlined.Palette),
     ALARMS("Alarms", "Silence, snooze and calendar", Icons.Outlined.NotificationsNone),
     TIMERS("Timers", "Sounds, presets and vibration", Icons.Outlined.HourglassEmpty),
@@ -796,12 +264,12 @@ private enum class SettingsCategory(val title: String, val subtitle: String, val
 }
 
 // Only the expanded presentation changes; the same controls and callbacks serve both layouts.
-private val LocalSettingsCategory = staticCompositionLocalOf<SettingsCategory?> { null }
+internal val LocalSettingsCategory = staticCompositionLocalOf<SettingsCategory?> { null }
 
 
 
 @Composable
-private fun Modifier.expandedSettingsTile(): Modifier = if (LocalSettingsCategory.current != null) {
+internal fun Modifier.expandedSettingsTile(): Modifier = if (LocalSettingsCategory.current != null) {
     clip(RoundedCornerShape(22.dp))
         .background(MaterialTheme.colorScheme.surfaceContainerLow)
         .border(
@@ -812,7 +280,7 @@ private fun Modifier.expandedSettingsTile(): Modifier = if (LocalSettingsCategor
 } else this
 
 @Composable
-private fun CalibrationControlRow(
+internal fun CalibrationControlRow(
     label: String,
     valueDp: Int,
     minValue: Float,
@@ -883,7 +351,7 @@ private fun CalibrationControlRow(
 }
 
 @Composable
-private fun OverlayCalibrationDialog(
+internal fun OverlayCalibrationDialog(
     settings: ClockSettings,
     onDismiss: () -> Unit,
     onChange: ((ClockSettings) -> ClockSettings) -> Unit,
@@ -1025,10 +493,10 @@ private fun OverlayCalibrationDialog(
     )
 }
 
-private enum class SettingsPicker { THEME, SILENCE, SNOOZE, WEEK_START, PRIVACY, PRESETS, STARTUP_PAGE }
+internal enum class SettingsPicker { THEME, SILENCE, SNOOZE, WEEK_START, PRIVACY, PRESETS, STARTUP_PAGE }
 
 @Composable
-private fun DefaultStartupPageDialog(
+internal fun DefaultStartupPageDialog(
     current: DefaultStartupPage,
     onDismiss: () -> Unit,
     onSelect: (DefaultStartupPage) -> Unit,
@@ -1070,7 +538,7 @@ private fun DefaultStartupPageDialog(
 }
 
 @Composable
-private fun SettingsCard(
+internal fun SettingsCard(
     title: String,
     content: @Composable () -> Unit,
 ) {
@@ -1111,7 +579,7 @@ private fun SettingsCard(
 }
 
 @Composable
-private fun SettingsNavigateRow(
+internal fun SettingsNavigateRow(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,
@@ -1172,7 +640,7 @@ private fun SettingsNavigateRow(
     }
 }
 
-internal fun joinedBlockShape(isFirst: Boolean, isLast: Boolean): AbsoluteRoundedCornerShape =
+fun joinedBlockShape(isFirst: Boolean, isLast: Boolean): AbsoluteRoundedCornerShape =
     AbsoluteRoundedCornerShape(
         topLeft = if (isFirst) 16.dp else 4.dp,
         topRight = if (isFirst) 16.dp else 4.dp,
@@ -1180,7 +648,7 @@ internal fun joinedBlockShape(isFirst: Boolean, isLast: Boolean): AbsoluteRounde
         bottomRight = if (isLast) 16.dp else 4.dp
     )
 @Composable
-private fun SettingsSwitchRow(
+internal fun SettingsSwitchRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -1222,7 +690,7 @@ private fun SettingsSwitchRow(
 }
 
 @Composable
-private fun SettingIcon(icon: ImageVector) {
+internal fun SettingIcon(icon: ImageVector) {
     Icon(
         icon,
         contentDescription = null,
@@ -1233,7 +701,7 @@ private fun SettingIcon(icon: ImageVector) {
 
 
 @Composable
-private fun SettingsDivider() {
+internal fun SettingsDivider() {
     if (LocalSettingsCategory.current != null) return
     Box(
         Modifier
@@ -1245,7 +713,7 @@ private fun SettingsDivider() {
 }
 
 @Composable
-private fun <T> ChoicePickerDialog(
+internal fun <T> ChoicePickerDialog(
     title: String,
     value: T,
     options: List<T>,
@@ -1279,7 +747,7 @@ private fun <T> ChoicePickerDialog(
 }
 
 @Composable
-private fun ThemePickerDialog(
+internal fun ThemePickerDialog(
     value: DarkMode,
     onDismiss: () -> Unit,
     onSelect: (DarkMode) -> Unit,
@@ -1295,7 +763,7 @@ private fun ThemePickerDialog(
 }
 
 @Composable
-private fun PrivacyDialog(onDismiss: () -> Unit) {
+internal fun PrivacyDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Privacy") },
@@ -1311,7 +779,7 @@ private fun PrivacyDialog(onDismiss: () -> Unit) {
     )
 }
 
-private fun minutesLabel(minutes: Int): String = when (minutes) {
+internal fun minutesLabel(minutes: Int): String = when (minutes) {
     0 -> "Never"
     1 -> "1 minute"
     else -> "$minutes minutes"
@@ -1320,7 +788,7 @@ private fun minutesLabel(minutes: Int): String = when (minutes) {
 
 
 @Composable
-private fun SinglePresetEditDialog(
+internal fun SinglePresetEditDialog(
     title: String,
     initialSeconds: Int,
     onDismiss: () -> Unit,
@@ -1435,7 +903,7 @@ private fun SinglePresetEditDialog(
 }
 
 @Composable
-private fun HorizontalEdgeBlurContainer(
+internal fun HorizontalEdgeBlurContainer(
     modifier: Modifier = Modifier,
     fadeLength: Dp = 20.dp,
     content: @Composable () -> Unit,
@@ -1541,7 +1009,7 @@ private fun HorizontalEdgeBlurContainer(
 }
 
 @RequiresApi(Build.VERSION_CODES.S)
-private fun setPaintBlurEffect(paint: Paint, radius: Float, tileMode: Shader.TileMode) {
+internal fun setPaintBlurEffect(paint: Paint, radius: Float, tileMode: Shader.TileMode) {
     runCatching {
         val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
         method.invoke(paint, RenderEffect.createBlurEffect(radius, radius, tileMode))

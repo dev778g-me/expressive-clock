@@ -60,7 +60,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
-import app.expressiveclock.ui.screens.SelectionToolbar
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -78,11 +78,12 @@ import app.expressiveclock.alarm.Notifications
 import app.expressiveclock.core.Alarm
 import app.expressiveclock.core.WorldCity
 import app.expressiveclock.data.DefaultStartupPage
-import app.expressiveclock.ui.screens.AlarmsScreen
+import app.expressiveclock.ui.screens.alarms.AlarmsScreen
+import app.expressiveclock.ui.screens.alarms.SelectionToolbar
 import app.expressiveclock.ui.screens.OnboardingScreen
-import app.expressiveclock.ui.screens.StopwatchScreen
-import app.expressiveclock.ui.screens.SettingsScreen
-import app.expressiveclock.ui.screens.TimersScreen
+import app.expressiveclock.ui.screens.stopwatch.StopwatchScreen
+import app.expressiveclock.ui.screens.settings.SettingsScreen
+import app.expressiveclock.ui.screens.timers.TimersScreen
 import app.expressiveclock.ui.sheets.AlarmEditSheet
 import app.expressiveclock.ui.sheets.NewAlarmPickerSheet
 import app.expressiveclock.ui.sheets.AddCitySheet

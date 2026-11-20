@@ -85,7 +85,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import app.expressiveclock.ui.screens.joinedBlockShape
+import app.expressiveclock.ui.screens.settings.joinedBlockShape
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek

@@ -72,6 +72,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.expressiveclock.overlay.OverlayAccessibilityService
+import app.expressiveclock.ui.screens.settings.joinedBlockShape
 
 
 /**

@@ -1,4 +1,4 @@
-package app.expressiveclock.ui.screens
+package app.expressiveclock.ui.screens.alarms
 
 import android.graphics.Paint
 import android.util.Log
@@ -136,6 +136,7 @@ import androidx.compose.ui.platform.LocalContext
 import java.time.LocalTime
 import app.expressiveclock.data.WeekStart
 import app.expressiveclock.data.order
+import app.expressiveclock.ui.screens.WorldClockPanel
 import app.expressiveclock.ui.sheets.systemFirstDay
 import app.expressiveclock.ui.theme.CapText
 import app.expressiveclock.ui.theme.ClockFace
@@ -216,283 +217,9 @@ private const val DAY_BLOCK_DP = 91f
 /** The constant slice of space between letters. The scale is derived from it, not tuned. */
 private const val DAY_TRACKING_DP = 2.2f
 
-@Composable
-fun AlarmsScreen(
-    alarms: List<Alarm>,
-    weekStart: WeekStart,
-    staggerEntranceToken: Int = 0,
-    onStaggerConsumed: () -> Unit = {},
-    onToggle: (Long) -> Unit,
-    onEdit: (Alarm) -> Unit,
-    contentPadding: PaddingValues,
-    onAddAlarm: (() -> Unit)? = null,
-    onDeleteAlarms: ((Set<Long>) -> Unit)? = null,
-    onSelectionCountChange: ((Int) -> Unit)? = null,
-    clearSelectionSignal: Int = 0,
-    deleteClickSignal: Int = 0,
-    editingAlarm: Alarm? = null,
-    showNewAlarmPicker: Boolean = false,
-    onSaveAlarm: ((Alarm) -> Unit)? = null,
-    onDismissInline: (() -> Unit)? = null,
-    cities: List<WorldCity> = emptyList(),
-    selectedCityZoneId: String? = null,
-    onSelectCity: ((WorldCity) -> Unit)? = null,
-    onAddCity: (() -> Unit)? = null,
-    cityPickerContent: (@Composable () -> Unit)? = null,
-    showCityPicker: Boolean = false,
-    onShowLocalTime: () -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    // Track how many cards are revealed during first-launch post-onboarding stagger
-    var visibleCardsCount by remember(staggerEntranceToken) {
-        mutableIntStateOf(if (staggerEntranceToken > 0) 0 else Int.MAX_VALUE)
-    }
-
-    LaunchedEffect(staggerEntranceToken, alarms.size) {
-        if (staggerEntranceToken > 0) {
-            // Brief 120ms settling pause after page slide transition completes
-            delay(120L)
-            Log.d("DynamicIslandOverlay", "SETUP INITIAL ALARM STAGGER START count=${alarms.size}")
-            for (i in 1..alarms.size) {
-                visibleCardsCount = i
-                Log.d("DynamicIslandOverlay", "SETUP INITIAL ALARM ITEM index=${i - 1}")
-                if (i < alarms.size) {
-                    delay(70L)
-                }
-            }
-            onStaggerConsumed()
-        }
-    }
-    // The setting reaches all the way into the tile, not only into the editor. An app that starts
-    // the week on Monday in the picker and on Sunday in the grid is worse than one with no setting.
-    val order = remember(weekStart) { weekStart.order(systemFirstDay()) }
-
-    // Keep a visual copy of the list so a deleted alarm can remain in the grid long enough for
-    // its exit animation to finish. Removing an item directly from the LazyGrid data source makes
-    // it disappear from composition immediately, which means there is nothing left to animate.
-    // The source list remains authoritative; this is only a short-lived presentation layer.
-    var displayedAlarms by remember { mutableStateOf(alarms) }
-    var exitingAlarmIds by remember { mutableStateOf(emptySet<Long>()) }
-
-    var selectedIds by rememberSaveable { mutableStateOf(emptySet<Long>()) }
-    val inSelectionMode = selectedIds.isNotEmpty()
-    var showDeleteConfirmSheet by remember { mutableStateOf(false) }
-
-    LaunchedEffect(selectedIds.size) {
-        onSelectionCountChange?.invoke(selectedIds.size)
-    }
-
-    LaunchedEffect(clearSelectionSignal) {
-        if (clearSelectionSignal > 0) {
-            selectedIds = emptySet()
-        }
-    }
-
-    LaunchedEffect(deleteClickSignal) {
-        if (deleteClickSignal > 0 && selectedIds.isNotEmpty()) {
-            showDeleteConfirmSheet = true
-        }
-    }
-
-    LaunchedEffect(displayedAlarms) {
-        val existingIds = displayedAlarms.map { it.id }.toSet()
-        val validSelected = selectedIds.filter { it in existingIds }.toSet()
-        if (validSelected != selectedIds) {
-            selectedIds = validSelected
-        }
-    }
-
-    LaunchedEffect(alarms) {
-        val sourceIds = alarms.asSequence().map { it.id }.toSet()
-        val oldDisplayed = displayedAlarms
-        val removed = oldDisplayed.filter { it.id !in sourceIds }
-        val removedIds = removed.map { it.id }.toSet()
-
-        if (removed.isNotEmpty()) {
-            exitingAlarmIds = exitingAlarmIds + removed.map { it.id }
-        }
-
-        if (removed.isEmpty()) {
-            // Normal updates, including an edited alarm changing its sort position, should mirror
-            // the source list exactly.
-            displayedAlarms = alarms
-        } else {
-            // During deletion, preserve the exiting card in its original slot while updating every
-            // surviving card by ID. This prevents a key from accidentally receiving another alarm's
-            // content when two alarms swap positions.
-            val sourceById = alarms.associateBy { it.id }
-            val oldIds = oldDisplayed.map { it.id }.toSet()
-            displayedAlarms = buildList {
-                oldDisplayed.forEach { old ->
-                    add(sourceById[old.id] ?: old)
-                }
-                alarms.forEach { alarm ->
-                    if (alarm.id !in oldIds) add(alarm)
-                }
-            }
-        }
-
-        if (removed.isNotEmpty()) {
-            // Slightly longer than the visual exit so the final frame is not clipped by the list
-            // mutation. The neighbouring cards then get their own spring placement animation.
-            kotlinx.coroutines.delay(360)
-            displayedAlarms = displayedAlarms.filter { it.id in sourceIds }
-            exitingAlarmIds = exitingAlarmIds - removedIds
-        }
-    }
-
-    val windowSizeInfo = LocalAppWindowSizeInfo.current
-
-    if (windowSizeInfo.isExpanded) {
-        ExpandedAlarmsScreen(
-            alarms = alarms,
-            weekStart = weekStart,
-            order = order,
-            displayedAlarms = displayedAlarms,
-            exitingAlarmIds = exitingAlarmIds,
-            selectedIds = selectedIds,
-            inSelectionMode = inSelectionMode,
-            visibleCardsCount = visibleCardsCount,
-            editingAlarm = editingAlarm,
-            showNewAlarmPicker = showNewAlarmPicker,
-            onToggle = onToggle,
-            onEdit = onEdit,
-            onToggleSelect = { id ->
-                selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
-            },
-            onStartSelection = { id ->
-                selectedIds = selectedIds + id
-            },
-            onAddAlarm = { onAddAlarm?.invoke() },
-            onSaveAlarm = { alarm: Alarm -> onSaveAlarm?.invoke(alarm) },
-            onDismissInline = { onDismissInline?.invoke() },
-            cities = cities,
-            cityPickerContent = cityPickerContent,
-            showCityPicker = showCityPicker,
-            onShowLocalTime = onShowLocalTime,
-            selectedCityZoneId = selectedCityZoneId,
-            onSelectCity = { city -> onSelectCity?.invoke(city) },
-            onAddCity = { onAddCity?.invoke() },
-            onDeleteAlarms = onDeleteAlarms,
-            onSelectionCountChange = onSelectionCountChange,
-            contentPadding = contentPadding,
-            modifier = modifier,
-        )
-    } else {
-        FixedEdgeBlurContainer(
-            topInset = contentPadding.calculateTopPadding(),
-            bottomInset = contentPadding.calculateBottomPadding(),
-            modifier = modifier,
-        ) {
-            AnimatedContent(
-                targetState = displayedAlarms.isEmpty(),
-                transitionSpec = {
-                    if (targetState) {
-                        (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
-                            scaleIn(initialScale = 0.92f, animationSpec = spring(stiffness = 380f, dampingRatio = 0.78f)) +
-                            slideInVertically(animationSpec = spring(stiffness = 380f, dampingRatio = 0.78f)) { it / 16 }
-                        ) togetherWith (
-                            fadeOut(tween(200, easing = FastOutSlowInEasing)) +
-                            scaleOut(targetScale = 0.95f, animationSpec = tween(200))
-                        )
-                    } else {
-                        (fadeIn(tween(280, easing = FastOutSlowInEasing)) +
-                            scaleIn(initialScale = 0.95f, animationSpec = spring(stiffness = 380f, dampingRatio = 0.78f))
-                        ) togetherWith (
-                            fadeOut(tween(200, easing = FastOutSlowInEasing)) +
-                            scaleOut(targetScale = 0.92f, animationSpec = tween(200)) +
-                            slideOutVertically(animationSpec = tween(200)) { it / 16 }
-                        )
-                    }
-                },
-                label = "alarmsEmptyTransition",
-                modifier = Modifier.fillMaxSize(),
-            ) { isEmpty ->
-                if (isEmpty) {
-                    EmptyAlarmState(
-                        onAddAlarm = { onAddAlarm?.invoke() },
-                        contentPadding = contentPadding,
-                    )
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = contentPadding,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        itemsIndexed(displayedAlarms, key = { _, alarm -> alarm.id }) { index, alarm ->
-                            val isCardVisible = alarm.id !in exitingAlarmIds && (index < visibleCardsCount)
-                            AnimatedVisibility(
-                                modifier = Modifier.animateItem(
-                                    placementSpec = spring(
-                                        stiffness = 380f,
-                                        dampingRatio = 0.68f,
-                                    ),
-                                ),
-                                visible = isCardVisible,
-                                enter = fadeIn(tween(180)) +
-                                    scaleIn(
-                                        initialScale = 0.86f,
-                                        animationSpec = spring(
-                                            dampingRatio = 0.62f,
-                                            stiffness = 400f,
-                                        ),
-                                    ) +
-                                    slideInVertically(
-                                        animationSpec = spring(
-                                            dampingRatio = 0.62f,
-                                            stiffness = 400f,
-                                        ),
-                                    ) { it / 10 },
-                                exit = fadeOut(tween(260)) +
-                                    scaleOut(
-                                        targetScale = 0.90f,
-                                        animationSpec = spring(dampingRatio = 0.78f, stiffness = 500f),
-                                    ),
-                            ) {
-                                AlarmTile(
-                                    alarm = alarm,
-                                    order = order,
-                                    selected = alarm.id in selectedIds,
-                                    inSelectionMode = inSelectionMode,
-                                    onToggle = { onToggle(alarm.id) },
-                                    onEdit = { onEdit(alarm) },
-                                    onToggleSelect = {
-                                        selectedIds = if (alarm.id in selectedIds) {
-                                            selectedIds - alarm.id
-                                        } else {
-                                            selectedIds + alarm.id
-                                        }
-                                    },
-                                    onStartSelection = {
-                                        selectedIds = selectedIds + alarm.id
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showDeleteConfirmSheet) {
-        DeleteAlarmsConfirmationSheet(
-            count = selectedIds.size,
-            onDismiss = { showDeleteConfirmSheet = false },
-            onConfirmDelete = {
-                val idsToDelete = selectedIds
-                selectedIds = emptySet()
-                showDeleteConfirmSheet = false
-                onDeleteAlarms?.invoke(idsToDelete)
-            },
-        )
-    }
-}
 
 @Composable
-private fun ExpandedAlarmsScreen(
+internal fun ExpandedAlarmsScreen(
     alarms: List<Alarm>,
     weekStart: WeekStart,
     order: List<DayOfWeek>,
@@ -656,7 +383,7 @@ private fun ExpandedAlarmsScreen(
 }
 
 @Composable
-private fun InlineAlarmEditorPanel(
+internal fun InlineAlarmEditorPanel(
     editingAlarm: Alarm?,
     weekStart: WeekStart,
     order: List<DayOfWeek>,
@@ -744,7 +471,7 @@ private fun InlineAlarmEditorPanel(
 }
 
 @Composable
-private fun DefaultRightPaneWorldClockPanel() {
+internal fun DefaultRightPaneWorldClockPanel() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -821,7 +548,7 @@ private fun DefaultRightPaneWorldClockPanel() {
 }
 
 @Composable
-private fun WorldMapIllustration(
+internal fun WorldMapIllustration(
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.primary,
 ) {
@@ -971,7 +698,7 @@ fun FixedEdgeBlurContainer(
 }
 
 @RequiresApi(Build.VERSION_CODES.S)
-private fun setPaintBlurEffect(paint: Paint, radius: Float, tileMode: Shader.TileMode) {
+internal fun setPaintBlurEffect(paint: Paint, radius: Float, tileMode: Shader.TileMode) {
     runCatching {
         val method = paint.javaClass.getMethod("setRenderEffect", RenderEffect::class.java)
         method.invoke(paint, RenderEffect.createBlurEffect(radius, radius, tileMode))
@@ -1011,10 +738,10 @@ private fun setPaintBlurEffect(paint: Paint, radius: Float, tileMode: Shader.Til
  * The meridiem stays in the max for safety, though tabular minutes are now always the wider of the
  * two: `00` at 0.743 cap is 71.5 dp against `AM`'s 28 dp at 0.145 cap.
  */
-private class TimeFit(val cap: Dp, val padStart: Dp, val padEnd: Dp)
+internal class TimeFit(val cap: Dp, val padStart: Dp, val padEnd: Dp)
 
 @Composable
-private fun fittedTime(meridiem: String, tileWidth: Dp, target: Dp): TimeFit {
+internal fun fittedTime(meridiem: String, tileWidth: Dp, target: Dp): TimeFit {
     val density = LocalDensity.current
     val ref = REFERENCE_CAP_DP.dp
     // `WEIGHT_ON` whatever this tile's weight is, and "00" whatever its time is. Both are
@@ -1071,7 +798,7 @@ private fun fittedTime(meridiem: String, tileWidth: Dp, target: Dp): TimeFit {
 }
 
 /** The `wdth` that makes the meridiem as wide as the minutes, and the shift that squares them up. */
-private class MeridiemFit(val width: Float, val offsetX: Dp)
+internal class MeridiemFit(val width: Float, val offsetX: Dp)
 
 /**
  * Stretches `AM`/`PM` on the **width axis** until its ink is exactly as wide as the minutes above
@@ -1089,7 +816,7 @@ private class MeridiemFit(val width: Float, val offsetX: Dp)
  * horizontal scale is involved: these are real widths the typeface was drawn to hold.
  */
 @Composable
-private fun rememberMeridiemFit(
+internal fun rememberMeridiemFit(
     meridiem: String,
     minutes: String,
     hourCap: Dp,
@@ -1148,7 +875,7 @@ private fun rememberMeridiemFit(
 private const val REFERENCE_CAP_DP = 120f
 
 @Composable
-private fun AlarmTile(
+internal fun AlarmTile(
     alarm: Alarm,
     order: List<DayOfWeek>,
     selected: Boolean = false,
@@ -1405,7 +1132,7 @@ fun SelectionToolbar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DeleteAlarmsConfirmationSheet(
+internal fun DeleteAlarmsConfirmationSheet(
     count: Int,
     onDismiss: () -> Unit,
     onConfirmDelete: () -> Unit,
@@ -1514,7 +1241,7 @@ private fun DeleteAlarmsConfirmationSheet(
 private const val ALARM_DIGIT_BOTTOM_BLEED_DP = 2
 
 @Composable
-private fun AnimatedAlarmNumber(
+internal fun AnimatedAlarmNumber(
     value: Int,
     capHeight: Dp,
     color: Color,
@@ -1545,7 +1272,7 @@ private fun AnimatedAlarmNumber(
 }
 
 @Composable
-private fun AnimatedAlarmDigit(
+internal fun AnimatedAlarmDigit(
     digit: Int,
     capHeight: Dp,
     color: Color,
@@ -1636,7 +1363,7 @@ private fun AnimatedAlarmDigit(
  * letters: block width fixed, tracking down, glyphs wider.
  */
 @Composable
-private fun DayLetters(alarm: Alarm, order: List<DayOfWeek>, ink: Color) {
+internal fun DayLetters(alarm: Alarm, order: List<DayOfWeek>, ink: Color) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val bold = ClockFace.capitals(DAY_CAP_DP.dp, ClockFace.CONDENSED, weight = DAY_WEIGHT_ON)
@@ -1675,7 +1402,7 @@ private const val DAY_WEIGHT_ON = 700
 private const val DAY_WEIGHT_OFF = 400
 
 @Composable
-private fun EmptyAlarmState(
+internal fun EmptyAlarmState(
     onAddAlarm: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
@@ -1745,7 +1472,7 @@ private fun EmptyAlarmState(
 }
 
 @Composable
-private fun SleepingAlarmClockIcon(
+internal fun SleepingAlarmClockIcon(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
     bellColor: Color = color.copy(alpha = 0.50f),

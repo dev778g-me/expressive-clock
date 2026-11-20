@@ -47,7 +47,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import app.expressiveclock.data.DEFAULT_TIMER_PRESETS
 import app.expressiveclock.data.formatPresetLabel
-import app.expressiveclock.ui.screens.joinedBlockShape
+import app.expressiveclock.ui.screens.settings.joinedBlockShape
 import kotlinx.coroutines.launch
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
