@@ -1,5 +1,6 @@
 package app.expressiveclock.ui.screens
 
+import android.R
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Paint
@@ -50,6 +51,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -64,8 +66,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -80,6 +80,7 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.TouchApp
 import android.util.Log
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -88,7 +89,6 @@ import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
-import app.expressiveclock.ui.theme.Palette
 import androidx.compose.material.icons.outlined.SettingsBrightness
 import androidx.compose.material.icons.outlined.Snooze
 import androidx.compose.material.icons.rounded.Check
@@ -110,8 +110,17 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -125,9 +134,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
+import androidx.compose.material3.MediumFlexibleTopAppBar
+import androidx.compose.material3.ScrollField
+import androidx.compose.material3.rememberScrollFieldState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -142,6 +161,10 @@ import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.expressiveclock.ui.sheets.AlarmSheetShape
+import app.expressiveclock.ui.sheets.TimerPresetsSheet
+import app.expressiveclock.ui.sheets.SheetHeaderButton
+import app.expressiveclock.ui.sheets.ThemePresetSheet
 import app.expressiveclock.data.ClockSettings
 import app.expressiveclock.data.DEFAULT_TIMER_PRESETS
 import app.expressiveclock.data.DarkMode
@@ -152,7 +175,6 @@ import app.expressiveclock.data.FACTORY_OVERLAY_WIDTH_OFFSET
 import app.expressiveclock.data.WeekStart
 import app.expressiveclock.overlay.OverlayAccessibilityService
 import app.expressiveclock.overlay.OverlayManager
-import app.expressiveclock.ui.elasticClickable
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
 
@@ -165,6 +187,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var picker by remember { mutableStateOf<SettingsPicker?>(null) }
+    var showThemePresets by remember { mutableStateOf(false) }
     var showCalibrationDialog by remember { mutableStateOf(false) }
     var showAccessibilityPromptDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
@@ -239,105 +262,155 @@ fun SettingsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        // Keep the app's edge-to-edge behaviour, while giving the title enough breathing room
-        // below the status bar on every device.
-        Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(bottom = 0.dp),
+        topBar = {
+            MediumFlexibleTopAppBar(
+                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Outlined.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .elasticClickable(onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-            Spacer(Modifier.width(18.dp))
-            Text(
-                "Settings",
-                style = MaterialTheme.typography.headlineLargeEmphasized,
-                color = MaterialTheme.colorScheme.onBackground,
             )
-        }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            val category: SettingsCategory? = null
+                SettingsCard(title = "Appearance") {
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .expandedSettingsTile()
+                            .clip(joinedBlockShape(isFirst = true, isLast = false))
+                            .padding(vertical = 1.dp),
+                        shapes = ListItemDefaults.shapes(
+                            shape = joinedBlockShape(isFirst = true, isLast = false),
+                        ),
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        leadingContent = {
+                            SettingIcon(Icons.Outlined.SettingsBrightness)
+                        },
+                        supportingContent = {
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                            ) {
+                                DarkMode.entries.forEachIndexed { index, mode ->
+                                    SegmentedButton(
+                                        selected = settings.theme.darkMode == mode,
+                                        onClick = {
+                                            onChange { it.copy(theme = it.theme.copy(darkMode = mode)) }
+                                        },
+                                        shape = SegmentedButtonDefaults.itemShape(
+                                            index = index,
+                                            count = DarkMode.entries.size,
+                                        ),
+                                    ) {
+                                        Text(mode.label, style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                            }
+                        },
+                    ) {
+                        Text("Theme")
+                    }
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.Contrast,
+                        title = "Pure black",
+                        subtitle = "Use true black surfaces in dark mode",
+                        checked = settings.theme.amoledBlack,
+                        isFirst = false,
+                        isLast = false,
+                        onCheckedChange = { value ->
+                            onChange { it.copy(theme = it.theme.copy(amoledBlack = value)) }
+                        },
+                    )
+                    SettingsSwitchRow(
+                        icon = Icons.Outlined.Palette,
+                        title = "Dynamic theme",
+                        subtitle = "Use wallpaper colours",
+                        checked = settings.theme.dynamicColor,
+                        isFirst = false,
+                        // With the wallpaper theme on, everything below collapses and this
+                        // becomes the last row in the card — so its bottom corners round.
+                        isLast = settings.theme.dynamicColor,
+                        onCheckedChange = { value ->
+                            onChange { it.copy(theme = it.theme.copy(dynamicColor = value)) }
+                        },
+                    )
+                    // Wallpaper colour off? The preset row is the only thing left, so it carries
+                    // the bottom corners of the card. Wallpaper on? It leaves with a vertical
+                    // collapse rather than popping out.
+                    AnimatedVisibility(
+                        visible = !settings.theme.dynamicColor,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        SettingsNavigateRow(
+                            icon = Icons.Outlined.Palette,
+                            title = "Theme presets",
+                            subtitle = themePresetLabel(settings.theme),
+                            isFirst = false,
+                            isLast = true,
+                            onClick = { showThemePresets = true },
+                        )
+                    }
+                }
 
-        SettingsContentLayout(
-            modifier = Modifier.weight(1f),
-            foldedScroll = scrollState,
-            foldedFalloff = headerFalloff,
-        ) { category ->
-            if (category == null || category == SettingsCategory.APPEARANCE) SettingsCard(title = "Appearance") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.SettingsBrightness,
-                    title = "Theme",
-                    subtitle = settings.theme.darkMode.label,
-                    trailing = settings.theme.darkMode.label,
-                    onClick = { picker = SettingsPicker.THEME },
-                )
-                SettingsDivider()
-                SettingsSwitchRow(
-                    icon = Icons.Outlined.Contrast,
-                    title = "Pure black",
-                    subtitle = "Use true black surfaces in dark mode",
-                    checked = settings.theme.amoledBlack,
-                    onCheckedChange = { value ->
-                        onChange { it.copy(theme = it.theme.copy(amoledBlack = value)) }
-                    },
-                )
-                SettingsDivider()
-                PalettePickerRow(
-                    dark = when (settings.theme.darkMode) {
-                        DarkMode.SYSTEM -> isSystemInDarkTheme()
-                        DarkMode.LIGHT -> false
-                        DarkMode.DARK -> true
-                    },
-                    dynamic = settings.theme.dynamicColor,
-                    selected = settings.theme.palette,
-                    onDynamic = {
-                        onChange { it.copy(theme = it.theme.copy(dynamicColor = true)) }
-                    },
-                    onSelect = { value ->
-                        onChange {
-                            it.copy(theme = it.theme.copy(palette = value, dynamicColor = false))
-                        }
-                    },
-                )
-            }
+                if (showThemePresets) {
+                    ThemePresetSheet(
+                        theme = settings.theme,
+                        isDark = when (settings.theme.darkMode) {
+                            DarkMode.SYSTEM -> isSystemInDarkTheme()
+                            DarkMode.LIGHT -> false
+                            DarkMode.DARK -> true
+                        },
+                        onThemeChange = { next -> onChange { it.copy(theme = next) } },
+                        onDismiss = { showThemePresets = false },
+                    )
+                }
 
             if (category == null || category == SettingsCategory.ALARMS) SettingsCard(title = "Alarms") {
                 SettingsNavigateRow(
                     icon = Icons.Outlined.NotificationsNone,
                     title = "Silence after",
                     subtitle = minutesLabel(settings.alarms.silenceAfterMinutes),
+                    isFirst = true,
                     onClick = { picker = SettingsPicker.SILENCE },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.Snooze,
                     title = "Snooze length",
                     subtitle = minutesLabel(settings.alarms.snoozeMinutes),
                     onClick = { picker = SettingsPicker.SNOOZE },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.CalendarMonth,
                     title = "Start week on",
                     subtitle = settings.alarms.weekStart.label,
+                    isLast = true,
                     onClick = { picker = SettingsPicker.WEEK_START },
                 )
             }
@@ -356,6 +429,7 @@ fun SettingsScreen(
                     icon = Icons.Outlined.MusicNote,
                     title = "Timer sound",
                     subtitle = timerSoundSubtitle,
+                    isFirst = true,
                     onClick = {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
@@ -372,30 +446,30 @@ fun SettingsScreen(
                         timerSoundLauncher.launch(intent)
                     },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.Timer,
                     title = "Timer presets",
                     subtitle = settings.timers.presets.joinToString(", ") { formatPresetLabel(it) },
                     onClick = { picker = SettingsPicker.PRESETS },
                 )
-                SettingsDivider()
-                SettingsSwitchRow(
+SettingsSwitchRow(
                     icon = Icons.Outlined.HourglassEmpty,
                     title = "Timer vibration",
                     subtitle = "Vibrate when a timer finishes",
                     checked = settings.timers.vibrate,
+                    isFirst = false,
+                    isLast = false,
                     onCheckedChange = { value ->
                         onChange { it.copy(timers = it.timers.copy(vibrate = value)) }
                     },
                 )
-                SettingsDivider()
-                val isAccConnected = checkAccessibilityGranted(context)
+val isAccConnected = checkAccessibilityGranted(context)
                 SettingsSwitchRow(
                     icon = Icons.Outlined.Timer,
                     title = "Dynamic Island overlay",
                     subtitle = "Show timer & stopwatch controls over other apps",
                     checked = settings.theme.dynamicIsland,
+                    isLast = true,
                     onCheckedChange = { enable ->
                         if (enable) {
                             onChange { it.copy(theme = it.theme.copy(dynamicIsland = true)) }
@@ -413,16 +487,14 @@ fun SettingsScreen(
                     exit = shrinkVertically(animationSpec = spring(stiffness = 450f, dampingRatio = 0.8f)) + fadeOut(animationSpec = tween(150)),
                 ) {
                     Column {
-                        SettingsDivider()
-                        SettingsNavigateRow(
+SettingsNavigateRow(
                             icon = Icons.Outlined.Timer,
                             title = "Position calibration",
                             subtitle = "Fine-tune horizontal & vertical alignment",
                             onClick = { showCalibrationDialog = true },
                         )
                         if (!isAccConnected) {
-                            SettingsDivider()
-                            SettingsNavigateRow(
+SettingsNavigateRow(
                                 icon = Icons.Outlined.Timer,
                                 title = "Enable status bar overlay",
                                 subtitle = "Draw above system status bars via Accessibility",
@@ -438,13 +510,14 @@ fun SettingsScreen(
                     icon = Icons.Outlined.Home,
                     title = "Default startup page",
                     subtitle = settings.defaultStartupPage.label,
+                    isFirst = true,
                     onClick = { picker = SettingsPicker.STARTUP_PAGE },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.HourglassEmpty,
                     title = "Show setup again",
                     subtitle = "Reopen the first-launch permissions setup",
+                    isLast = true,
                     onClick = onReopenOnboarding,
                 )
             }
@@ -476,21 +549,20 @@ fun SettingsScreen(
                             )
                         }
                     },
+                    isFirst = true,
                     onClick = {
                         if (!isCheckingUpdates) {
                             checkForUpdates()
                         }
                     },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.PrivacyTip,
                     title = "Privacy",
                     subtitle = "No accounts, no telemetry, no network",
                     onClick = { picker = SettingsPicker.PRIVACY },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.PrivacyTip,
                     title = "Privacy policy",
                     subtitle = "Read how Expressive Clock handles your data",
@@ -505,11 +577,11 @@ fun SettingsScreen(
                             }
                     },
                 )
-                SettingsDivider()
-                SettingsNavigateRow(
+SettingsNavigateRow(
                     icon = Icons.Outlined.Info,
                     title = "App version",
                     subtitle = "Clock ${app.expressiveclock.BuildConfig.VERSION_NAME}",
+                    isLast = true,
                     onClick = {},
                 )
             }
@@ -518,6 +590,7 @@ fun SettingsScreen(
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
+}
 
     picker?.let { current ->
         when (current) {
@@ -529,10 +602,10 @@ fun SettingsScreen(
                     picker = null
                 },
             )
-            SettingsPicker.SILENCE -> ChoicePickerDialog(
+            SettingsPicker.SILENCE -> ChoicePickerSheet(
                 title = "Silence after",
-                value = settings.alarms.silenceAfterMinutes,
                 options = listOf(1, 5, 10, 15, 20, 25, 30, 0),
+                selected = settings.alarms.silenceAfterMinutes,
                 label = ::minutesLabel,
                 onDismiss = { picker = null },
                 onSelect = { value ->
@@ -540,10 +613,10 @@ fun SettingsScreen(
                     picker = null
                 },
             )
-            SettingsPicker.SNOOZE -> ChoicePickerDialog(
+            SettingsPicker.SNOOZE -> ChoicePickerSheet(
                 title = "Snooze length",
-                value = settings.alarms.snoozeMinutes,
                 options = listOf(1, 5, 10, 15, 20, 30),
+                selected = settings.alarms.snoozeMinutes,
                 label = ::minutesLabel,
                 onDismiss = { picker = null },
                 onSelect = { value ->
@@ -551,10 +624,10 @@ fun SettingsScreen(
                     picker = null
                 },
             )
-            SettingsPicker.WEEK_START -> ChoicePickerDialog(
+            SettingsPicker.WEEK_START -> ChoicePickerSheet(
                 title = "Start week on",
-                value = settings.alarms.weekStart,
                 options = WeekStart.entries,
+                selected = settings.alarms.weekStart,
                 label = { it.label },
                 onDismiss = { picker = null },
                 onSelect = { value ->
@@ -562,7 +635,7 @@ fun SettingsScreen(
                     picker = null
                 },
             )
-            SettingsPicker.PRESETS -> TimerPresetsDialog(
+            SettingsPicker.PRESETS -> TimerPresetsSheet(
                 presets = settings.timers.presets,
                 onDismiss = { picker = null },
                 onSave = { newPresets ->
@@ -570,8 +643,11 @@ fun SettingsScreen(
                     picker = null
                 },
             )
-            SettingsPicker.STARTUP_PAGE -> DefaultStartupPageDialog(
-                current = settings.defaultStartupPage,
+            SettingsPicker.STARTUP_PAGE -> ChoicePickerSheet(
+                title = "Default startup page",
+                options = DefaultStartupPage.entries,
+                selected = settings.defaultStartupPage,
+                label = { it.label },
                 onDismiss = { picker = null },
                 onSelect = { selected ->
                     onChange { it.copy(defaultStartupPage = selected) }
@@ -635,6 +711,82 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> ChoicePickerSheet(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    icon: ImageVector? = null,
+    onDismiss: () -> Unit,
+    onSelect: (T) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = AlarmSheetShape,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLargeEmphasized,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(8.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                options.forEachIndexed { index, option ->
+                    val isFirst = index == 0
+                    val isLast = index == options.lastIndex
+                    val  isSelected = option == selected
+                    ListItem(
+                        selected = isSelected,
+                        onClick = {
+                            scope.launch { sheetState.hide() }.invokeOnCompletion { onSelect(option) }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
+                            .padding(vertical = 1.dp),
+
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTrailingContentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shapes = ListItemDefaults.shapes(
+                            pressedShape = CircleShape
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        trailingContent = {
+                            if (isSelected){
+                                Icon(imageVector = Icons.Rounded.Check, "Checked")
+                            }
+                        }
+                    ) {
+                        Text(label(option))
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
 private enum class SettingsCategory(val title: String, val subtitle: String, val icon: ImageVector) {
     APPEARANCE("Appearance", "Theme, colours and display", Icons.Outlined.Palette),
     ALARMS("Alarms", "Silence, snooze and calendar", Icons.Outlined.NotificationsNone),
@@ -646,143 +798,17 @@ private enum class SettingsCategory(val title: String, val subtitle: String, val
 // Only the expanded presentation changes; the same controls and callbacks serve both layouts.
 private val LocalSettingsCategory = staticCompositionLocalOf<SettingsCategory?> { null }
 
-@Composable
-private fun SettingsContentLayout(
-    foldedScroll: ScrollState,
-    foldedFalloff: Float,
-    modifier: Modifier = Modifier,
-    content: @Composable (SettingsCategory?) -> Unit,
-) {
-    if (!LocalAppWindowSizeInfo.current.isExpanded) {
-        Column(
-            modifier.fillMaxWidth()
-                .progressiveListEdgeMask(topStrength = foldedFalloff, bottomStrength = 0f)
-                .verticalScroll(foldedScroll)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) { content(null) }
-        return
-    }
 
-    var selected by rememberSaveable { mutableStateOf(SettingsCategory.APPEARANCE) }
-    val categoryScrolls = SettingsCategory.entries.associateWith { category ->
-        androidx.compose.runtime.key(category) { rememberScrollState() }
-    }
-    val panelShape = RoundedCornerShape(28.dp)
-    val panelBorder = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .35f)
-    val panelBottomInset = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
-    val titleStyle = MaterialTheme.typography.titleMediumEmphasized
-    val textMeasurer = rememberTextMeasurer()
-    val titleWidth = with(LocalDensity.current) {
-        SettingsCategory.entries.maxOf {
-            textMeasurer.measure(it.title, style = titleStyle, softWrap = false, maxLines = 1).size.width
-        }.toDp()
-    }
-    BoxWithConstraints(modifier) {
-    // Reserve a complete title plus compact icon, chevron, padding and gaps on narrow windows.
-    val availableWidth = (maxWidth - 48.dp).coerceAtLeast(1.dp)
-    val navigationFraction = maxOf(.35f, (titleWidth + 110.dp) / availableWidth).coerceAtMost(.65f)
-    TwoPaneLayout(
-        modifier = Modifier.padding(bottom = 16.dp),
-        leftWeight = navigationFraction,
-        rightWeight = 1f - navigationFraction,
-        paneSpacing = 16.dp,
-        contentPaddingDp = 16.dp,
-        leftPane = {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-            val compactMenu = maxWidth < titleWidth + 140.dp
-            Column(
-                Modifier.fillMaxSize()
-                    .windowInsetsPadding(panelBottomInset)
-                    .clip(panelShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .border(1.dp, panelBorder, panelShape)
-                    .verticalScroll(rememberScrollState())
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SettingsCategory.entries.forEach { category ->
-                    val active = category == selected
-                    val background by animateColorAsState(
-                        if (active) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surface,
-                        animationSpec = tween(240), label = "settingsCategoryHighlight",
-                    )
-                    Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp))
-                            .background(background)
-                            .border(1.dp, panelBorder, RoundedCornerShape(22.dp))
-                            .selectable(active, role = Role.Tab, onClick = { selected = category })
-                            .padding(horizontal = 12.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(if (compactMenu) 8.dp else 12.dp),
-                    ) {
-                        if (compactMenu) {
-                            Icon(category.icon, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                        } else {
-                            SettingIcon(category.icon)
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text(category.title, style = titleStyle, maxLines = 1, softWrap = false,
-                                color = MaterialTheme.colorScheme.onSurface)
-                            Text(category.subtitle, style = MaterialTheme.typography.bodySmall.copy(
-                                lineBreak = LineBreak.Paragraph, hyphens = Hyphens.None),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Icon(Icons.Rounded.ChevronRight, contentDescription = null,
-                            tint = if (active) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp))
-                    }
-                }
-                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            }
-            }
-        },
-        rightPane = {
-            // Keep the panel outline outside AnimatedContent's transition and clipping layers.
-            Box(
-                modifier = Modifier.fillMaxSize()
-                    .windowInsetsPadding(panelBottomInset)
-                    .clip(panelShape)
-                    .border(1.dp, panelBorder, panelShape),
-            ) {
-            AnimatedContent(
-                targetState = selected,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    (fadeIn(tween(220)) + slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 24 }) togetherWith
-                        (fadeOut(tween(140)) + slideOutVertically(tween(180)) { -it / 32 })
-                },
-                label = "settingsCategoryContent",
-            ) { category ->
-                val scroll = categoryScrolls.getValue(category)
-                val falloffDistance = with(LocalDensity.current) { 32.dp.toPx() }
-                val falloff by animateFloatAsState(
-                    (scroll.value / falloffDistance).coerceIn(0f, 1f),
-                    label = "settingsCategoryFalloff",
-                )
-                CompositionLocalProvider(LocalSettingsCategory provides category) {
-                    Column(
-                        Modifier.fillMaxSize()
-                            .progressiveListEdgeMask(topStrength = falloff, bottomStrength = 0f)
-                            .verticalScroll(scroll).padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) { content(category) }
-                }
-            }
-            }
-        },
-    )
-    }
-}
 
 @Composable
 private fun Modifier.expandedSettingsTile(): Modifier = if (LocalSettingsCategory.current != null) {
     clip(RoundedCornerShape(22.dp))
         .background(MaterialTheme.colorScheme.surfaceContainerLow)
-        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .25f), RoundedCornerShape(22.dp))
+        .border(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = .25f),
+            RoundedCornerShape(22.dp)
+        )
 } else this
 
 @Composable
@@ -1065,27 +1091,22 @@ private fun SettingsCard(
         }
         return
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(
-                if (isSystemInDarkTheme()) {
-                    MaterialTheme.colorScheme.surfaceContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerLow
-                }
-            )
-            .padding(top = 18.dp, bottom = 8.dp),
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         Text(
-            title.uppercase(),
-            style = MaterialTheme.typography.labelLargeEmphasized,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding( top = 4.dp),
         )
-        Spacer(Modifier.height(4.dp))
-        content()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            content()
+        }
     }
 }
 
@@ -1096,115 +1117,120 @@ private fun SettingsNavigateRow(
     subtitle: String? = null,
     subtitleContent: (@Composable () -> Unit)? = null,
     trailing: String? = null,
+    isFirst: Boolean = false,
+    isLast: Boolean = false,
     onClick: () -> Unit,
 ) {
-    Row(
+    ListItem(
         modifier = Modifier
             .fillMaxWidth()
             .expandedSettingsTile()
-            .clip(RoundedCornerShape(20.dp))
-            .elasticClickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
+            .clickable(onClick = onClick)
+            .padding(vertical = 1.dp),
+        shapes = ListItemDefaults.shapes(
+            shape = joinedBlockShape(isFirst = isFirst, isLast = isLast),
+        ),
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
         verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SettingIcon(icon)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+        leadingContent = {
+            SettingIcon(icon)
+        },
+        trailingContent = {
+            if (trailing != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                ) {
+                    Text(
+                        trailing,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            } else {
+                Icon(
+                    Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        supportingContent = {
             if (subtitleContent != null) {
                 subtitleContent()
             } else if (subtitle != null) {
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(subtitle)
             }
-        }
-        if (trailing != null) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = 14.dp, vertical = 9.dp),
-            ) {
-                Text(
-                    trailing,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        } else {
-            Icon(
-                Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        },
+    ) {
+        Text(title)
     }
 }
 
+internal fun joinedBlockShape(isFirst: Boolean, isLast: Boolean): AbsoluteRoundedCornerShape =
+    AbsoluteRoundedCornerShape(
+        topLeft = if (isFirst) 16.dp else 4.dp,
+        topRight = if (isFirst) 16.dp else 4.dp,
+        bottomLeft = if (isLast) 16.dp else 4.dp,
+        bottomRight = if (isLast) 16.dp else 4.dp
+    )
 @Composable
 private fun SettingsSwitchRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
     checked: Boolean,
+    isFirst: Boolean = false,
+    isLast: Boolean = false,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(
+
+    ListItem(
         modifier = Modifier
             .fillMaxWidth()
             .expandedSettingsTile()
-            .clip(RoundedCornerShape(20.dp))
-            .elasticClickable(onClick = { onCheckedChange(!checked) })
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .clip(joinedBlockShape(isFirst = isFirst, isLast = isLast))
+            .clickable(onClick = { onCheckedChange(!checked) })
+            .padding(vertical = 1.dp),
+        shapes = ListItemDefaults.shapes(
+            shape = joinedBlockShape(isFirst = isFirst, isLast = isLast),
+        ),
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
         verticalAlignment = Alignment.CenterVertically,
+        leadingContent = {
+            SettingIcon(icon)
+        },
+        trailingContent = {
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        },
+        supportingContent = {
+            Text(subtitle)
+        },
     ) {
-        SettingIcon(icon)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Text(
+            title,
+        )
     }
+
 }
 
 @Composable
 private fun SettingIcon(icon: ImageVector) {
-    val dark = LocalSettingsCategory.current == null && isSystemInDarkTheme()
-    Box(
-        modifier = Modifier
-            .size(46.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .background(
-                if (dark) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.primaryContainer,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (dark) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.size(23.dp),
-        )
-    }
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.size(24.dp),
+    )
 }
+
 
 @Composable
 private fun SettingsDivider() {
@@ -1216,138 +1242,6 @@ private fun SettingsDivider() {
             .height(1.dp)
             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
     )
-}
-
-@Composable
-private fun PalettePickerRow(
-    dark: Boolean,
-    dynamic: Boolean,
-    selected: Palette,
-    onDynamic: () -> Unit,
-    onSelect: (Palette) -> Unit,
-) {
-    val context = LocalContext.current
-    val wallpaper = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (dark) androidx.compose.material3.dynamicDarkColorScheme(context)
-        else androidx.compose.material3.dynamicLightColorScheme(context)
-    } else null
-
-    Column(Modifier.fillMaxWidth().expandedSettingsTile().padding(vertical = 12.dp)) {
-        Row(
-            Modifier.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SettingIcon(Icons.Outlined.Palette)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "Colour theme",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    "Personalise the look of the app",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 76.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (wallpaper != null) {
-                PaletteSwatch(
-                    name = "Wallpaper",
-                    color = wallpaper.primary,
-                    selected = dynamic,
-                    onClick = onDynamic,
-                )
-            }
-            Palette.entries.forEach { palette ->
-                PaletteSwatch(
-                    name = palette.displayName,
-                    color = paletteSwatchColor(palette, dark),
-                    selected = !dynamic && palette == selected,
-                    onClick = { onSelect(palette) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PaletteSwatch(
-    name: String,
-    color: Color,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(68.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(color)
-                .border(
-                    width = if (selected) 3.dp else 0.dp,
-                    color = if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                    shape = CircleShape,
-                )
-                .elasticClickable(onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (selected) {
-                Icon(
-                    Icons.Rounded.Check,
-                    contentDescription = "Selected $name theme",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            name,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-        )
-    }
-}
-
-private fun paletteSwatchColor(palette: Palette, dark: Boolean): Color {
-    // These are deliberately distinct preview colours. The underlying Palette still controls
-    // the complete Material color scheme; the swatch is simply a recognisable visual sample.
-    val light = when (palette) {
-        Palette.CONCEPT -> Color(0xFF006874)
-        Palette.VIOLET -> Color(0xFF7D5260)
-        Palette.CORAL -> Color(0xFFBA1A1A)
-        Palette.EMBER -> Color(0xFF9B4620)
-        Palette.CITRON -> Color(0xFF6B6F00)
-        Palette.FOREST -> Color(0xFF356859)
-        Palette.LAGOON -> Color(0xFF006A6A)
-        Palette.AZURE -> Color(0xFF0061A4)
-        Palette.FUCHSIA -> Color(0xFFA80078)
-    }
-    return if (!dark) light else when (palette) {
-        Palette.CONCEPT -> Color(0xFF4FD8EB)
-        Palette.VIOLET -> Color(0xFFEFB8C8)
-        Palette.CORAL -> Color(0xFFFFB4AB)
-        Palette.EMBER -> Color(0xFFFFB594)
-        Palette.CITRON -> Color(0xFFE0E68A)
-        Palette.FOREST -> Color(0xFF9AD0BC)
-        Palette.LAGOON -> Color(0xFF80E0E0)
-        Palette.AZURE -> Color(0xFFA8C7FA)
-        Palette.FUCHSIA -> Color(0xFFFFA9E8)
-    }
 }
 
 @Composable
@@ -1423,80 +1317,7 @@ private fun minutesLabel(minutes: Int): String = when (minutes) {
     else -> "$minutes minutes"
 }
 
-@Composable
-fun TimerPresetsDialog(
-    presets: List<Int>,
-    onDismiss: () -> Unit,
-    onSave: (List<Int>) -> Unit,
-) {
-    var currentPresets by remember(presets) {
-        mutableStateOf(presets.take(4).let { if (it.size == 4) it else DEFAULT_TIMER_PRESETS })
-    }
-    var editingIndex by remember { mutableStateOf<Int?>(null) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Timer presets") },
-        confirmButton = {
-            TextButton(onClick = { onSave(currentPresets) }) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                currentPresets.forEachIndexed { index, seconds ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .clickable { editingIndex = index }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "Preset ${index + 1}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(horizontal = 14.dp, vertical = 6.dp),
-                        ) {
-                            Text(
-                                formatPresetLabel(seconds),
-                                style = MaterialTheme.typography.labelLargeEmphasized,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                    }
-                }
-            }
-        },
-    )
-
-    editingIndex?.let { index ->
-        SinglePresetEditDialog(
-            title = "Preset ${index + 1}",
-            initialSeconds = currentPresets[index],
-            onDismiss = { editingIndex = null },
-            onConfirm = { newSeconds ->
-                val updated = currentPresets.toMutableList()
-                updated[index] = newSeconds
-                currentPresets = updated
-                editingIndex = null
-            },
-        )
-    }
-}
 
 @Composable
 private fun SinglePresetEditDialog(
