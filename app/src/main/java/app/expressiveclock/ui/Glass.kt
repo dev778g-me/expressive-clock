@@ -52,10 +52,6 @@ fun GlassBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.(
     Box(modifier = modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.background)) { content() }
 }
 
-/**
- * A restrained glass surface for a white canvas: translucent white, a cool blue inner sheen and a
- * bright edge. The shadow is intentionally soft enough to read as light passing through glass.
- */
 @Composable
 fun Modifier.glass(
     shape: Shape = RoundedCornerShape(28.dp),
@@ -101,12 +97,6 @@ fun Modifier.glass(
     .border(1.25.dp, if (isDark) Color.White.copy(alpha = .14f) else Color.White.copy(alpha = borderAlpha), shape)
 }
 
-/**
- * A controllable blue drop shadow for large circular surfaces. This deliberately avoids
- * RenderNode elevation because very large colored shadows can be rasterized with a faceted
- * outline on some Android devices. A radial field lives in a larger parent box, so the shadow
- * cannot be clipped by the circle itself.
- */
 @Composable
 fun FloatingCircle(
     size: androidx.compose.ui.unit.Dp,

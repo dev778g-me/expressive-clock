@@ -5,14 +5,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-/**
- * GENERATED. Do not hand-edit. Regenerate with `tools/gen_palettes.py`.
- *
- * The app's selectable palettes are intentionally distinct. Concept uses a teal-forward scheme
- * to match the concept's visual language, while the remaining palettes provide clearly different
- * accent families for users who want to customise the app.
- *
- */
 enum class Palette(val displayName: String, val light: ColorScheme, val dark: ColorScheme) {
 
     CONCEPT(

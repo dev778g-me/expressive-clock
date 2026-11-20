@@ -55,14 +55,6 @@ import app.expressiveclock.ui.theme.Palette
 import app.expressiveclock.widget.ClockWidgetProvider
 import app.expressiveclock.widget.WidgetEntryPoints
 
-/**
- * One sheet per tab, opened from that tab's own title.
- *
- * There is no settings *screen* and no gear. The title is the affordance, deliberately unmarked,
- * because the four preferences a clock has are ones you set once and giving them a permanent icon
- * in the app bar would cost more attention every day than it saves twice a year. Long-press would
- * have been more discoverable but is already spoken for on the world-clock rows.
- */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AppSettingsSheet(
@@ -208,9 +200,6 @@ fun AlarmSettingsSheet(
             ChoiceRow(
                 title = "Silence after",
                 value = settings.alarms.silenceAfterMinutes,
-                // 0 is "Never" (it rings until it is dismissed). Worth offering and worth putting
-                // last rather than first: it is the answer for someone the default fails, not the
-                // one to fall into by scrolling.
                 options = listOf(1, 5, 10, 15, 20, 25, 30, 0),
                 label = ::minutesLabel,
                 onSelect = { v -> onChange { it.copy(alarms = it.alarms.copy(silenceAfterMinutes = v)) } },
@@ -235,14 +224,6 @@ fun AlarmSettingsSheet(
     }
 }
 
-/**
- * Add a clock widget, and edit any already placed.
- *
- * This exists because `widgetFeatures="reconfigurable"` is explicitly only a *hint* to the host.
- * Several launchers have never offered a reconfigure affordance, and on those a placed widget would
- * otherwise be uneditable forever. Listing the live ids from `AppWidgetManager` means the app can
- * always get back to one.
- */
 @Composable
 private fun WidgetRows() {
     val context = LocalContext.current
@@ -253,7 +234,6 @@ private fun WidgetRows() {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Analog Clock Card
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -311,7 +291,6 @@ private fun WidgetRows() {
             }
         }
 
-        // Digital Clock Card
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -371,26 +350,11 @@ private fun WidgetRows() {
     }
 }
 
-/**
- * Offers the full-screen-intent grant, and only when it is missing.
- *
- * From Android 14 `USE_FULL_SCREEN_INTENT` is no longer install-granted to anything but calling
- * apps; for everyone else the declared permission is downgraded to a heads-up banner, which is
- * how a ringing alarm ends up as a notification you have to find rather than a screen you cannot
- * miss. `canUseFullScreenIntent()` is the documented way to ask, and
- * `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` the documented way to send the user to grant it.
- *
- * It is a row rather than a launch-time dialog on purpose: the app is perfectly usable without it,
- * and prompting for a special permission before the user has set a single alarm is how permission
- * prompts get dismissed reflexively.
- */
 @Composable
 private fun FullScreenIntentRow() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
     val context = LocalContext.current
     val nm = context.getSystemService(android.app.NotificationManager::class.java)
-    // Re-read on every recomposition rather than remembering: the user grants this in Settings and
-    // comes back, and a cached value would still say "not allowed" on their return.
     if (nm?.canUseFullScreenIntent() != false) return
     NavigateRow(
         title = "Full-screen alarms",
@@ -406,14 +370,6 @@ private fun FullScreenIntentRow() {
     )
 }
 
-/**
- * The palette picker: a swatch per scheme, showing the three accents it actually produces.
- *
- * A single dot would be a lie here: the Expressive variant's whole point is that secondary and
- * tertiary rotate away from the seed, so two palettes with similar primaries can be completely
- * different to use. The swatch is a three-stop gradient of primary, tertiary and secondary for
- * that reason.
- */
 @Composable
 private fun PaletteRow(
     dynamic: Boolean,
@@ -492,14 +448,6 @@ private fun Swatch(
     }
 }
 
-/**
- * Appearance and widgets, on the Stopwatch tab.
- *
- * They are app-wide rather than stopwatch-specific, and they used to hang off the alarm sheet
- * purely because that was the first sheet to exist. That made the longest settings screen in the
- * app the one for the feature with the most settings of its own. Stopwatch had none at all, so the
- * two shared concerns live here and each sheet is now about one thing.
- */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun StopwatchSettingsSheet(
@@ -527,10 +475,6 @@ fun StopwatchSettingsSheet(
                 onChange = { v -> onChange { it.copy(theme = it.theme.copy(amoledBlack = v)) } },
             )
 
-            // Always on show, with the wallpaper as the first swatch rather than as a switch
-            // somewhere above them. Hiding the palettes behind "wallpaper colours: off" meant that
-            // on a fresh install, where wallpaper colour is the default, the theme picker looked
-            // like it did not exist.
             PaletteRow(
                 dynamic = settings.theme.dynamicColor,
                 selected = settings.theme.palette,

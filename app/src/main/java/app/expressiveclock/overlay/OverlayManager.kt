@@ -64,13 +64,6 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import kotlin.math.roundToInt
 
-/**
- * Controller for adding, updating, and removing the Dynamic Island overlay via WindowManager.
- *
- * Architecture:
- * - Layer 1 (Rendering Window): Full-screen MATCH_PARENT window with FLAG_NOT_TOUCHABLE for rendering smooth Compose animations.
- * - Layer 2 (Interaction Window): Bounded window matching activeIslandBounds for precise touch interaction.
- */
 object OverlayManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -86,7 +79,6 @@ object OverlayManager {
     private var currentTimer: ClockTimer? = null
     private var currentStopwatch: Stopwatch? = null
 
-    // Persistent observable Compose states for the single composition tree
     private var overlayTimerState by mutableStateOf<ClockTimer?>(null)
     private var overlayStopwatchState by mutableStateOf<Stopwatch?>(null)
     private var overlaySettingsState by mutableStateOf(ClockSettings())
@@ -94,7 +86,6 @@ object OverlayManager {
     private var overlayIsCalibrationState by mutableStateOf(false)
     private var overlayIsExpandedState by mutableStateOf(false)
 
-    // Dedicated exit request ID and visual snapshot states
     private var overlayExitRequestId by mutableStateOf(0)
     private var overlayExitTimerState: ClockTimer? by mutableStateOf(null)
     private var overlayExitStopwatchState: Stopwatch? by mutableStateOf(null)
@@ -105,7 +96,6 @@ object OverlayManager {
     private var activeIslandBounds: Rect? = null
     private var overlayGeneration = 0
 
-    // Queued app launch state to prevent foreground lifecycle crashes
     private var pendingAppLaunchTab: String? = null
     private var pendingExitAfterCollapse = false
 
@@ -206,7 +196,6 @@ object OverlayManager {
     fun syncOverlayState() {
         val context = appContext ?: return
 
-        // Cold start guard: Wait until AppLifecycleTracker has observed first activity lifecycle state
         if (!AppLifecycleTracker.hasObservedFirstActivityState && !isCalibrationPreviewing) {
             Log.d("DynamicIslandOverlay", "syncOverlayState deferred: Waiting for first activity lifecycle state")
             return
@@ -237,8 +226,6 @@ object OverlayManager {
             overlayStopwatchState = sw
             overlayIsExitingState = false
             overlayExitRequestId = 0
-            // The AccessibilityService hosts the overlay window. Do not use a mediaPlayback
-            // foreground service just to keep this overlay process alive.
             showOrUpdateOverlay(context)
         } else {
             if (isOverlayAttached && !overlayIsExitingState) {
@@ -280,7 +267,6 @@ object OverlayManager {
         Log.d("DynamicIslandOverlay", "DI BEGIN ANIMATED EXIT request=$overlayExitRequestId")
         Log.d("DynamicIslandOverlay", "DI EXIT SNAPSHOT timer=$overlayExitTimerState stopwatch=$overlayExitStopwatchState")
 
-        // Remove Layer 2 interaction window immediately so user cannot touch the shrinking island
         val interactionView = interactionComposeView
         val wm = overlayWindowManager ?: windowManager
         if (interactionView != null && wm != null) {
@@ -319,7 +305,6 @@ object OverlayManager {
             }
             overlayViewModelStoreOwner = viewModelStoreOwner
 
-            // Layer 1: Rendering View (Full-screen, non-touchable)
             val renderView = ComposeView(context).apply {
                 setViewTreeLifecycleOwner(lifecycleOwner)
                 setViewTreeViewModelStoreOwner(viewModelStoreOwner)
@@ -350,7 +335,6 @@ object OverlayManager {
             updateWindowParams()
         }
 
-        // Layer 2: Interaction Window (Bounded, touchable)
         if (isOverlayAttached && !isCalibrationPreviewing) {
             val attachedWm = overlayWindowManager ?: wm
             showOrUpdateInteractionView(context, attachedWm, overlayGeneration)
@@ -517,28 +501,22 @@ object OverlayManager {
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (isTimerActive) {
-                                // Button 1: Pause / Resume
                                 InteractionScallopedButton(
                                     onClick = { sendAction(context, ClockActionReceiver.ACTION_TIMER_TOGGLE) },
                                 )
-                                // Button 2: +1m
                                 InteractionScallopedButton(
                                     onClick = { sendAction(context, ClockActionReceiver.ACTION_TIMER_ADD) },
                                 )
-                                // Button 3: Cancel
                                 InteractionScallopedButton(
                                     onClick = { sendAction(context, ClockActionReceiver.ACTION_TIMER_CANCEL) },
                                 )
                             } else {
-                                // Button 1: Pause / Resume
                                 InteractionScallopedButton(
                                     onClick = { sendAction(context, ClockActionReceiver.ACTION_SW_TOGGLE) },
                                 )
-                                // Button 2: Lap
                                 InteractionScallopedButton(
                                     onClick = { sendAction(context, ClockActionReceiver.ACTION_SW_LAP) },
                                 )
-                                // Button 3: Cancel/Reset
                                 InteractionScallopedButton(
                                     onClick = { sendAction(context, ClockActionReceiver.ACTION_SW_RESET) },
                                 )
@@ -595,7 +573,6 @@ object OverlayManager {
         val userX = (settings.theme.overlayOffsetX * density).roundToInt()
         val userY = (settings.theme.overlayOffsetY * density).roundToInt()
 
-        // FLAG_NOT_TOUCHABLE guarantees Layer 1 never blocks touches outside the island!
         val touchFlags = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
@@ -737,7 +714,6 @@ object OverlayManager {
                     launchMainActivityNow(ctx, pendingTab)
                 }
             }
-
 
         } finally {
             isOverlayBeingRemoved = false

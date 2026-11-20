@@ -12,24 +12,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/**
- * The widget's only presence in this app's process.
- *
- * There is deliberately no periodic update. The hands are ticked by the host's own `AnalogClock`
- * and the date by its `TextClock`, both inside the launcher and both stopping the moment the home
- * screen is not visible, so the steady-state cost of a placed widget here is *zero* wakeups.
- *
- * What is left is redrawing when something the picture depends on actually changes. All four
- * broadcasts below are on the implicit-broadcast exception list and may be declared in the
- * manifest; `ACTION_DATE_CHANGED` and `ACTION_CONFIGURATION_CHANGED` are not, and are not used.
- */
 class ClockWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         background(context) { store ->
-            // A missing record means the config activity has not committed yet: the launcher binds
-            // and calls onUpdate *before* the user has chosen anything. Leave the placeholder; do
-            // not seed a default the user never picked.
             ids.forEach { ClockWidgetRenderer.update(context, manager, it) }
             store.sweepWidgetConfigs(allPlacedWidgetIds(context))
         }
@@ -49,13 +35,6 @@ class ClockWidgetProvider : AppWidgetProvider() {
         background(context) { it.deleteWidgetConfigs(ids) }
     }
 
-    /**
-     * Restore from backup.
-     *
-     * The remap has to *complete* before anything renders, because `AppWidgetProvider.onReceive`
-     * calls `onUpdate(newIds)` the instant this returns. Read the records under their old ids and
-     * they are already gone.
-     */
     override fun onRestored(context: Context, oldIds: IntArray, newIds: IntArray) {
         background(context) { store ->
             store.remapWidgetConfigs(oldIds, newIds)
@@ -76,11 +55,6 @@ class ClockWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    /**
-     * Reading DataStore suspends and `onReceive` runs on the main thread with a ten-second
-     * deadline; the pending result keeps the process alive across the coroutine. `finish()` must be
-     * reached on every path or the receiver leaks and the system eventually kills the app for it.
-     */
     private fun background(context: Context, work: suspend (ClockStore) -> Unit) {
         val app = context.applicationContext
         val pending = goAsync()

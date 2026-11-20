@@ -21,22 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.expressiveclock.BuildConfig
 
-/**
- * The About section: the things an app needs before it can be given to somebody else.
- *
- * Every claim below is checkable against the APK rather than being a promise. That is the whole
- * standard this section is held to. The suite's rule is that *a stale privacy claim is worse than
- * none*, because it is the one thing a user has no way to verify for themselves. So:
- *
- *  - **No `INTERNET` permission**, and not in any merged dependency manifest either. That was
- *    checked, not assumed. An app without it cannot open a socket: the platform refuses, so this
- *    is enforced by Android rather than by the app's good behaviour. It is the only privacy claim
- *    worth making, because it is the only one that does not depend on trusting the developer.
- *  - Every other permission is listed with what it is actually for. A permission list the user has
- *    to interpret is not disclosure.
- *  - The bundled fonts are named with their licences, because two of them are redistributed
- *    binaries and that carries obligations.
- */
 @Composable
 fun AboutRows() {
     var open by remember { mutableStateOf<AboutPage?>(null) }
@@ -131,8 +115,6 @@ private enum class AboutPage(val title: String, val body: List<String>) {
     ),
 
     // The OFL asks that the copyright notice and the licence travel *with the font software*, and
-    // an APK carrying two font binaries is a distribution of it. So the notices are here in the app
-    // and not only in the repository's THIRD-PARTY-NOTICES.md.
     LICENCES(
         "Licences",
         listOf(

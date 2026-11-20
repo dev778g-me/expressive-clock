@@ -15,29 +15,6 @@ import app.expressiveclock.data.WidgetType
 import app.expressiveclock.ui.theme.ClockTheme
 import kotlinx.coroutines.launch
 
-/**
- * The editor that appears when a clock widget is placed, and again when it is reconfigured.
- *
- * ## The contract, which is unforgiving
- *
- * The launcher builds this intent with **no** `FLAG_ACTIVITY_NEW_TASK` and calls
- * `startIntentSenderForResult`, so the activity runs *inside the launcher's own task*. It therefore
- * must not declare `launchMode`, `taskAffinity`, `noHistory` or a translucent theme. Copying
- * `MainActivity`'s `singleTask` would force a separate task, return `RESULT_CANCELED` immediately,
- * and delete the widget before the user saw anything.
- *
- * `RESULT_CANCELED` is set in `onCreate`, before any UI: with targetSdk 36 predictive back is on
- * and `onBackPressed` is no longer called, so there is no later opportunity.
- *
- * ## Commit order
- *
- * The order is persist, render, `setResult(RESULT_OK)`, finish, and every step is awaited. Any
- * death before `setResult` reads as a cancel, the host drops the id, and `onDeleted` clears the
- * half-written record. It is the only ordering with no inconsistent outcome.
- *
- * The draft is held in memory until Save, so backing out of a *reconfigure* leaves the previous
- * configuration untouched.
- */
 class ClockWidgetConfigActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,15 +25,12 @@ class ClockWidgetConfigActivity : ComponentActivity() {
             AppWidgetManager.INVALID_APPWIDGET_ID,
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
-        // Before setContent, per the contract above.
         setResult(RESULT_CANCELED, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId))
 
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish()
             return
         }
-        // The activity is exported, so anyone can launch it with any id. Only act on ids that
-        // really belong to our widget providers.
         val manager = AppWidgetManager.getInstance(this)
         val provider = manager.getAppWidgetInfo(appWidgetId)?.provider
         val isDigital = provider == DigitalClockWidgetProvider.component(this)

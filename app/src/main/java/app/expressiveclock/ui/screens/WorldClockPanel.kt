@@ -100,10 +100,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/**
- * The expanded Alarms pane's world-clock surface. It deliberately owns only presentation and the
- * transient selection; city persistence remains in [ClockStore] through [ClockViewModel].
- */
 @Composable
 fun WorldClockPanel(
     cities: List<WorldCity>,
@@ -115,8 +111,6 @@ fun WorldClockPanel(
 ) {
     val now by rememberWallTicker()
     val selected = cities.firstOrNull { it.zone.id == selectedZoneId }
-    // This presentation-only entry is never written to the saved-city store.
-    // The zone's representative city is a label, not a claim of GPS location.
     val localCity = prettify(ZoneId.systemDefault().id).copy(region = "Local Time")
     val mapCities = (listOf(localCity) + cities).distinctBy { it.zone.id }
 
@@ -269,7 +263,6 @@ private fun markerLayout(cities: List<WorldCity>, bounds: Rect): List<Pair<World
 
 private fun DrawScope.drawLocationMarker(center: Offset, color: Color, selected: Boolean, glow: Float, pulse: Float) {
     val coreRadius = if (selected) 8f else 5.5f
-    // Only the outer glow breathes; selection strength transfers the pulse smoothly between pins.
     val blueRadius = coreRadius + 10f
     val goldenRadius = 16.dp.toPx() + 12.dp.toPx() * pulse
     val glowRadius = blueRadius + (goldenRadius - blueRadius) * glow
@@ -320,8 +313,6 @@ private fun SavedLocationList(
         val index = cities.indexOfFirst { it.zone.id == id }
         if (index < 0) return@LaunchedEffect
         delay(260) // Let the right-pane exit finish before revealing the persisted addition.
-        // Clamp the spring's target before starting it. Otherwise the list reaches its bottom
-        // early, but animateScrollBy keeps animating an unreachable target while the card is hidden.
         val stride = with(density) { 56.dp.toPx() }
         val currentScroll = state.firstVisibleItemIndex * stride + state.firstVisibleItemScrollOffset
         val viewport = state.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
@@ -330,8 +321,6 @@ private fun SavedLocationList(
         val maxScroll = (contentHeight - viewport).coerceAtLeast(0f)
         val targetScroll = (index * stride).coerceAtMost(maxScroll)
         val distance = targetScroll - currentScroll
-        // Use animateScrollBy's same spring and consumed-distance calculation, but release
-        // the entrance during its final visible approach instead of awaiting the spring's tail.
         val revealDistance = with(density) { 8.dp.toPx() }
         val blurInset = with(density) { 32.dp.toPx() }
         state.scroll {
@@ -387,8 +376,6 @@ private fun SavedLocationList(
                     ),
                     tutorial = !settings.world.deleteTutorialShown,
                     onEntranceFinished = {
-                        // Clearing the pending id is an effect key change: wait for the
-                        // residual scroll to end so it cannot cancel the original scroll.
                         scope.launch {
                             snapshotFlow { state.isScrollInProgress }.first { !it }
                             if (vm.newlyAddedCity == city.zone.id) vm.finishCityEntrance()
@@ -460,8 +447,6 @@ private fun SwipeLocation(
             motion?.cancel()
             motion = scope.launch {
                 slide.animateTo(-width, spring(dampingRatio = .95f, stiffness = 500f), initialVelocity = velocity)
-                // Removing only after the foreground exits gives the remaining keyed rows
-                // one spring placement animation instead of chasing a shrinking row each frame.
                 onDelete()
             }
         }
@@ -628,7 +613,6 @@ internal fun Modifier.progressiveListEdgeMask(topStrength: Float, bottomStrength
         drawContent()
         return@drawWithContent
     }
-    // Record once, then crossfade sharp and blurred samples in stationary viewport bands.
     sharp.record { this@drawWithContent.drawContent() }
     val edgeFraction = (32.dp.toPx() / size.height.coerceAtLeast(1f)).coerceAtMost(.25f)
     val clearMask = Brush.verticalGradient(

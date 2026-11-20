@@ -17,13 +17,6 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 
-/**
- * The still half of the clock: outline, fill, indices and numerals, drawn once into a bitmap.
- *
- * Everything that moves is somebody else's problem. The hands are the host's `AnalogClock` and
- * the date is its `TextClock`. This bitmap changes only when the configuration, the size, the
- * palette or the day/night mode changes, which is why the widget costs nothing to run.
- */
 object FaceRenderer {
 
     class Colours(
@@ -41,12 +34,6 @@ object FaceRenderer {
         val pin: Int,
     )
 
-    /**
-     * Draws the face at [w] × [h] pixels.
-     *
-     * Returns the bitmap along with the `Rmin` and centre the hands must be scaled against, so the
-     * two renderers cannot disagree about where the middle of the clock is.
-     */
     class Face(val bitmap: Bitmap, val rMin: Float, val cx: Float, val cy: Float)
 
     fun render(context: Context, config: WidgetConfig, colours: Colours, w: Int, h: Int): Face {
@@ -55,8 +42,6 @@ object FaceRenderer {
         val wf = w.toFloat()
         val hf = h.toFloat()
 
-        // The fitted path is a *centreline*, so an outline stroke would spill half its width past
-        // the widget. Fitting into a rect inset by half the stroke is what keeps it inside.
         val strokeR = config.outline.widthR
         val provisional = facePath(config.shape, config.pillOrientation, config.fit, wf, hf)
         val provisionalOutline = FaceOutline(provisional, wf / 2f, hf / 2f)
@@ -87,8 +72,6 @@ object FaceRenderer {
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.STROKE
                     strokeWidth = strokePx
-                    // Round joins rather than mitred: a mitre on a star's sharp vertex reaches four
-                    // times the stroke width past the path and straight out of the widget.
                     strokeJoin = Paint.Join.ROUND
                     strokeCap = Paint.Cap.ROUND
                     color = colours.outline
@@ -121,8 +104,6 @@ object FaceRenderer {
                 val filled = config.minorIndices == MinorIndex.DOTS
                 paint.style = if (filled) Paint.Style.FILL else Paint.Style.STROKE
                 paint.strokeWidth = 0.014f * r
-                // Rings read lighter than dots at the same diameter, so they are drawn a shade
-                // larger. Without that, swapping between the two looks like a size change.
                 val radius = DialGeometry.MINOR_DOT_RADIUS * r * (if (filled) 1.0f else 1.35f)
                 for (hour in 1..12) {
                     if (hour in numbered) continue
@@ -167,8 +148,6 @@ object FaceRenderer {
 
         val widthVal = if (config.analogFont == WidgetFontFamily.GOOGLE_SANS) 25f else 100f
 
-        // Measure the widest label the system can produce at cap height 1, so the clamp is against
-        // real glyphs rather than an assumption about how wide a numeral is.
         val probe = TextInk.numeralPaint(
             context, 100f,
             width = widthVal,
@@ -219,8 +198,6 @@ object FaceRenderer {
                 NumeralLayout.SHAPE_UPRIGHT, NumeralLayout.SHAPE_ROTATED -> {
                     val margin = 0.10f * r
                     val hit = outline.placeGlyph(angleRad, ink, margin)
-                    // Turned with the dial, but flipped through the lower half so a numeral is
-                    // never upside down, which is the same rule the world-clock dial uses.
                     val rot = if (config.numeralLayout == NumeralLayout.SHAPE_ROTATED) {
                         angleDeg + if (angleDeg.mod(360f) in 90f..270f) 180f else 0f
                     } else {
@@ -236,8 +213,6 @@ object FaceRenderer {
 
             canvas.save()
             if (rotation != 0f) canvas.rotate(rotation, x, y)
-            // getTextBounds' rect is relative to the pen origin, so this centres the *ink* rather
-            // than the advance box; the difference is visible on "1" and on Roman "I".
             canvas.drawText(
                 text,
                 x - ink.width() / 2f - ink.left,

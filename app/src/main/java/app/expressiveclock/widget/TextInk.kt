@@ -10,23 +10,8 @@ import app.expressiveclock.R
 import app.expressiveclock.data.NumeralSystem
 import app.expressiveclock.data.WidgetFontFamily
 
-/**
- * Text for the widget, built on `android.graphics.Paint` with no Compose anywhere.
- *
- * A widget's bitmap is rendered in a `BroadcastReceiver` or a config activity's background work,
- * so none of the app's `@Composable` type layer is reachable. What *is* reachable is everything in
- * `ClockFace` that is a plain constant or a plain function, and the technique its `rememberInkBounds`
- * uses: `Paint.getTextBounds` for ink, `Paint.measureText` for advance.
- */
 object TextInk {
 
-    /**
-     * A paint pinned to a point in Google Sans Flex's axis space.
-     *
-     * `Paint.setFontVariationSettings` is API 26 and returns false when no underlying font carries
-     * the axes. It is checked rather than assumed, because the failure is silent: numerals would
-     * come out at normal width with no error anywhere.
-     */
     fun numeralPaint(
         context: Context,
         sizePx: Float,
@@ -55,8 +40,6 @@ object TextInk {
         textSize = sizePx
         textAlign = Paint.Align.LEFT
         if (system == NumeralSystem.EASTERN_ARABIC) {
-            // Noto Sans Arabic is variable on `wght` only; there is no width axis, so a condensed
-            // treatment cannot apply here and asking for one would silently do nothing.
             setFontVariationSettings("'wght' $weight")
         } else {
             fontFeatureSettings = "tnum, lnum"
@@ -66,14 +49,6 @@ object TextInk {
         }
     }
 
-    /**
-     * The size to set so a string's ink is exactly [capPx] tall.
-     *
-     * Measured rather than derived from a constant. `ClockFace.DIGIT_EM` is 0.728, but that is a
-     * Google Sans Flex number: the Noto Arabic digits measure 0.691 em with `٨` descending 0.016 em
-     * below the baseline. Using the wrong one makes one numeral system visibly smaller than the
-     * others.
-     */
     fun sizeForCap(paint: Paint, sample: String, capPx: Float): Float {
         val r = Rect()
         paint.textSize = 100f
@@ -88,15 +63,6 @@ object TextInk {
         return out
     }
 
-    /**
-     * The label for an hour, in the chosen system.
-     *
-     * Roman uses the **watch-dial** convention: `IIII` at four, not `IV`. It is not a mistake and
-     * it is not decoration. It balances `VIII` opposite it optically, and it makes the three
-     * quadrants read `I II III IIII` / `V VI VII VIII` / `IX X XI XII`, additive all the way to X.
-     * Built from ASCII I/V/X rather than the Unicode numeral forms at U+2160, which Google Sans
-     * Flex does not contain and which have no precomposed `IIII` in any case.
-     */
     fun label(hour: Int, system: NumeralSystem): String {
         val h = ((hour - 1).mod(12)) + 1
         return when (system) {

@@ -4,12 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.view.accessibility.AccessibilityEvent
 
-/**
- * Service used solely to host the Clock app's Dynamic Island overlay at the
- * TYPE_ACCESSIBILITY_OVERLAY system window layer above status bars.
- *
- * Does NOT inspect window content, read screens, or perform gestures.
- */
 class OverlayAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
@@ -19,11 +13,9 @@ class OverlayAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Intentionally empty: no event processing or screen inspection.
     }
 
     override fun onInterrupt() {
-        // Intentionally empty.
     }
 
     override fun onUnbind(intent: Intent?): Boolean {

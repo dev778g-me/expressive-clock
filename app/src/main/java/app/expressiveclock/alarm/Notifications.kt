@@ -17,25 +17,6 @@ import app.expressiveclock.core.Stopwatch
 import app.expressiveclock.core.TimerState
 import app.expressiveclock.core.clockFormat
 
-/**
- * Every channel and every notification the app posts.
- *
- * ## The timer and stopwatch notifications carry no service
- *
- * They do not need one. A countdown is a *deadline*, not a process: the remaining time is
- * `deadline − elapsedRealtime()`, correct whether or not this app has run since. So the ongoing
- * notification is posted once with `setUsesChronometer` and the system renders the ticking digits
- * itself, at zero cost to the app, for as long as the notification exists. Notifications outlive
- * the process that posted them. A foreground service would burn a wakelock to recompute a number
- * the platform can derive from a timestamp.
- *
- * `setChronometerCountDown(true)` is what makes the timer count *down* rather than up; it needs
- * API 24 and the app's floor is 26. The expiry itself is an exact alarm, so nothing has to be
- * awake to notice it.
- *
- * The ringer is the one thing that does take a foreground service, because looping audio is real
- * ongoing work (see [AlarmService]).
- */
 object Notifications {
 
     const val CHANNEL_ALARM = "alarm"
@@ -50,8 +31,6 @@ object Notifications {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService<NotificationManager>() ?: return
 
-        // No sound on the channel: the ringer plays its own looping audio, and a channel sound
-        // would fire a second, one-shot copy over the top of it.
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_ALARM, "Alarms", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "A ringing alarm"
@@ -75,8 +54,6 @@ object Notifications {
         )
     }
 
-    /* ── Timer ──────────────────────────────────────────────────────────────────────────────── */
-
     fun showTimer(context: Context, timer: ClockTimer) {
         val running = timer.state == TimerState.RUNNING
         val b = NotificationCompat.Builder(context, CHANNEL_TIMER)
@@ -96,7 +73,6 @@ object Notifications {
             .addAction(0, "Cancel", broadcast(context, ClockActionReceiver.ACTION_TIMER_CANCEL, 22))
 
         if (running) {
-            // The platform ticks this. `when` is the moment it reaches zero.
             b.setUsesChronometer(true)
                 .setChronometerCountDown(true)
                 .setWhen(System.currentTimeMillis() + timer.remaining(SystemClock.elapsedRealtime()).toMillis())
@@ -112,8 +88,6 @@ object Notifications {
     fun hideTimer(context: Context) {
         NotificationManagerCompat.from(context).cancel(ID_TIMER)
     }
-
-    /* ── Stopwatch ──────────────────────────────────────────────────────────────────────────── */
 
     fun showStopwatch(context: Context, sw: Stopwatch) {
         val b = NotificationCompat.Builder(context, CHANNEL_STOPWATCH)
@@ -139,7 +113,6 @@ object Notifications {
             )
 
         if (sw.running) {
-            // Counting up: `when` is the instant it started, which the platform subtracts from now.
             b.setUsesChronometer(true)
                 .setWhen(System.currentTimeMillis() - sw.elapsed(SystemClock.elapsedRealtime()).toMillis())
                 .setShowWhen(true)
@@ -154,8 +127,6 @@ object Notifications {
     fun hideStopwatch(context: Context) {
         NotificationManagerCompat.from(context).cancel(ID_STOPWATCH)
     }
-
-    /* ── Plumbing ───────────────────────────────────────────────────────────────────────────── */
 
     const val TAB_ALARMS = "alarms"
     const val TAB_TIMERS = "timers"
@@ -180,14 +151,6 @@ object Notifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-    /**
-     * Posts, unless the user said no.
-     *
-     * `POST_NOTIFICATIONS` is a runtime permission from API 33 and every one of these calls sits
-     * on a path that must not throw, whether a receiver, a service or a coroutine with no UI.
-     * Checking here once is cheaper than a try/catch at every call site and it fails the way it
-     * should: the alarm still rings, it is just not announced.
-     */
     private fun post(context: Context, id: Int, n: android.app.Notification) {
         val nm = NotificationManagerCompat.from(context)
         if (!nm.areNotificationsEnabled()) return

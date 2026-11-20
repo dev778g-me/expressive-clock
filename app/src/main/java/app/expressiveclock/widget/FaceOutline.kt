@@ -9,28 +9,11 @@ import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.sin
 
-/**
- * Where things sit on an arbitrary face outline.
- *
- * This is the generalisation of `PillDial`'s closed-form stadium solver off a known equation and
- * onto any `Path`. The stadium version could intersect a ray analytically; a clover cannot, so the
- * outline is sampled into a polyline once and every query is a ray/segment intersection over it.
- *
- * The two things that make it look right, both learned the hard way on the in-app dial:
- *
- *  - **Inset along the inward normal, not along the ray.** Insetting along the ray leaves the
- *    numerals nearest the wide axis visibly tighter to the wall than the one at twelve.
- *  - **Correct for the glyph's own box.** A constant *anchor* inset is not a constant *ink*
- *    clearance, because the glyph box is axis-aligned while the normal is usually oblique, and
- *    "10" is twice the width of "3". Measured on the in-app dial before the correction: 17.1 px
- *    against 21.9 px.
- */
 class FaceOutline(path: Path, val cx: Float, val cy: Float) {
 
     /** The outline as a closed polyline in final pixel coordinates. */
     private val pts: FloatArray = run {
         val approx = path.approximate(APPROX_ERROR_PX)
-        // approximate() returns (fraction, x, y) triples.
         FloatArray(2 * (approx.size / 3)) { i ->
             val t = i / 2
             if (i % 2 == 0) approx[t * 3 + 1] else approx[t * 3 + 2]
@@ -50,13 +33,6 @@ class FaceOutline(path: Path, val cx: Float, val cy: Float) {
     /** A point on the outline, with the inward unit normal there. */
     class Hit(val x: Float, val y: Float, val nx: Float, val ny: Float)
 
-    /**
-     * Where the ray leaving the centre at [angle] (zero at twelve o'clock, growing clockwise)
-     * crosses the outline.
-     *
-     * Takes the **farthest** crossing rather than the nearest, which is what keeps a concave shape
-     * like a clover or a heart from placing its numerals inside a notch.
-     */
     fun castRay(angle: Float): Hit? {
         val dx = sin(angle)
         val dy = -cos(angle)
@@ -83,7 +59,6 @@ class FaceOutline(path: Path, val cx: Float, val cy: Float) {
                 bestT = t
                 bx = cx + dx * t
                 by = cy + dy * t
-                // Segment normal, turned to face inward.
                 val len = hypot(sx, sy).takeIf { it > 1e-7f } ?: 1f
                 var px = sy / len
                 var py = -sx / len
@@ -98,14 +73,6 @@ class FaceOutline(path: Path, val cx: Float, val cy: Float) {
         return if (bestT <= 0f) null else Hit(bx, by, nx, ny)
     }
 
-    /**
-     * The centre for a glyph box of [ink] sitting at [angle], with its ink a constant [margin] from
-     * the wall.
-     *
-     * `support` is the half-extent of an axis-aligned box in the normal's direction: how far the
-     * box's own corner reaches toward the wall. Adding it is what turns a constant anchor inset
-     * into a constant ink clearance.
-     */
     fun placeGlyph(angle: Float, ink: Rect, margin: Float): Hit? {
         val edge = castRay(angle) ?: return null
         val support = (ink.width() / 2f) * abs(edge.nx) + (ink.height() / 2f) * abs(edge.ny)
@@ -113,20 +80,12 @@ class FaceOutline(path: Path, val cx: Float, val cy: Float) {
         return Hit(edge.x + edge.nx * d, edge.y + edge.ny * d, edge.nx, edge.ny)
     }
 
-    /**
-     * [count] points spread evenly **by arc length** around the outline, each with its inward
-     * normal, starting at twelve o'clock.
-     *
-     * By arc length, not by angle: on a flower or a twelve-sided cookie, equal angles bunch the
-     * marks up in the lobes and strand them across the notches.
-     */
     fun alongOutline(path: Path, count: Int, inset: Float): List<Hit> {
         val measure = PathMeasure(path, true)
         val total = measure.length
         if (total <= 0f || count <= 0) return emptyList()
         val pos = FloatArray(2)
         val tan = FloatArray(2)
-        // Start at the point nearest twelve o'clock so the marks line up with the hours.
         val startHit = castRay(0f)
         val startD = startHit?.let { nearestDistance(measure, total, it.x, it.y) } ?: 0f
         return (0 until count).map { i ->

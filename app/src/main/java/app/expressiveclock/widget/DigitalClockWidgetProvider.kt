@@ -11,11 +11,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/**
- * Provider for the Digital Clock widget.
- *
- * Uses `TextClock` views for zero-wakeup time and date updates natively in the host launcher.
- */
 class DigitalClockWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {

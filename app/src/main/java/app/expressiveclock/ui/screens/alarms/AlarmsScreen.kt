@@ -146,39 +146,8 @@ import app.expressiveclock.ui.theme.StretchedCaps
 import java.time.DayOfWeek
 import kotlin.math.sin
 
-/**
- * The alarm grid.
- *
- * Proportions are measured off the research-concept renders in `clock-mockups/reference/concept/`.
- * At 412 dp wide the render gives a tile of 184 × 250 dp on a 15.7 dp margin with a 12 dp gutter,
- * a 23.9 dp corner radius, and an hour numeral whose cap height is 153 dp: **0.62 of the tile**.
- * That figure is the design; it is what makes the grid read as a wall of numerals rather than a
- * list of cards with big text on them.
- *
- * Armed and disarmed differ by **weight, not by fill**: `wght` 260 against `wght` 120 on the same
- * ultra-condensed cut, solved from the render's measured stem-over-cap of 0.0639 and 0.0306. The
- * off state is a light numeral, not an outlined one.
- *
- * Every element of the time (hour, minutes, meridiem) carries the *same* tracking. See
- * [ClockFace.CONDENSED_TRACKING] for why that is one constant rather than solved per element.
- */
-/**
- * The inset every edge of the tile shares: numeral ink, day letters, switch track alike.
- *
- * The render measured this twice and got the same answer both times: numeral ink 17.9 dp down a
- * 250 dp tile, and the switch's visible track 18.2 dp up from its bottom. It was a *fraction* of
- * the tile height while the tile had a fixed aspect; now the height is derived from the content it
- * has to be an absolute, or the two would chase each other.
- */
 private const val CONTENT_INSET_DP = 18.1f
 
-/**
- * From the top of the day row's box to the bottom of the switch you can *see*.
- *
- * `Switch` is 48 dp of touch target around a 32 dp track, centred, so the visible track starts 8 dp
- * down. The column's bottom padding gives the other 8 dp back, which is what lands the track on
- * [CONTENT_INSET_DP].
- */
 private const val SWITCH_ROW_VISIBLE_DP = 40f
 /** Measured: the minutes are three-quarters of the hour's cap height, cap-tops aligned. */
 private const val MINUTE_CAP_FRACTION = 0.743f
@@ -186,28 +155,8 @@ private const val MINUTE_CAP_FRACTION = 0.743f
 private const val MERIDIEM_FRACTION = 0.145f
 /** Derived, so the column closes on the hour's baseline: 1 − 0.743 − 0.145. */
 private const val MERIDIEM_GAP_FRACTION = 1f - MINUTE_CAP_FRACTION - MERIDIEM_FRACTION
-/**
- * The gap between the hour's and the minutes' boxes, as a fraction of the hour's cap.
- *
- * A fraction rather than the 8.3 dp it was measured at, because the cap is now solved per tile: a
- * fixed gap would be a different proportion of a 140 dp numeral than of a 170 dp one, and the fit
- * would drift between tiles.
- */
-/**
- * What one step of [ClockFace.TRACKING_DELTA] is worth, measured in hour-caps.
- *
- * Tracking is in em and this gap is in caps, so the two only trade through the digit's own
- * ink-to-em ratio: a font size of `cap / DIGIT_EM` means `delta` em is `delta / DIGIT_EM` of a cap.
- * There are exactly two internal digit gaps in a time, one inside the hour and one inside the
- * minutes, so twice this comes out of the gap between them and the block's width is unchanged.
- */
 private const val TRACKING_DELTA_AS_CAP = ClockFace.TRACKING_DELTA / ClockFace.DIGIT_EM
 private const val GAP_FRACTION = 8.3f / 155f - 2f * TRACKING_DELTA_AS_CAP
-/**
- * `Switch` reserves a 48 dp touch target around a 32 dp track, so its visible top is 8 dp below the
- * row's. Every vertical measurement here is of the switch you can *see*, so the row is placed 8 dp
- * higher than the number says.
- */
 private const val SWITCH_TOUCH_INSET_DP = 8f
 /** A little shorter than the switch's 32 dp track, because level with it reads as shouting. */
 private const val DAY_CAP_DP = 23f
@@ -243,14 +192,12 @@ fun AlarmsScreen(
     onShowLocalTime: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // Track how many cards are revealed during first-launch post-onboarding stagger
     var visibleCardsCount by remember(staggerEntranceToken) {
         mutableIntStateOf(if (staggerEntranceToken > 0) 0 else Int.MAX_VALUE)
     }
 
     LaunchedEffect(staggerEntranceToken, alarms.size) {
         if (staggerEntranceToken > 0) {
-            // Brief 120ms settling pause after page slide transition completes
             delay(120L)
             Log.d("DynamicIslandOverlay", "SETUP INITIAL ALARM STAGGER START count=${alarms.size}")
             for (i in 1..alarms.size) {
@@ -263,14 +210,8 @@ fun AlarmsScreen(
             onStaggerConsumed()
         }
     }
-    // The setting reaches all the way into the tile, not only into the editor. An app that starts
-    // the week on Monday in the picker and on Sunday in the grid is worse than one with no setting.
     val order = remember(weekStart) { weekStart.order(systemFirstDay()) }
 
-    // Keep a visual copy of the list so a deleted alarm can remain in the grid long enough for
-    // its exit animation to finish. Removing an item directly from the LazyGrid data source makes
-    // it disappear from composition immediately, which means there is nothing left to animate.
-    // The source list remains authoritative; this is only a short-lived presentation layer.
     var displayedAlarms by remember { mutableStateOf(alarms) }
     var exitingAlarmIds by remember { mutableStateOf(emptySet<Long>()) }
 
@@ -313,13 +254,8 @@ fun AlarmsScreen(
         }
 
         if (removed.isEmpty()) {
-            // Normal updates, including an edited alarm changing its sort position, should mirror
-            // the source list exactly.
             displayedAlarms = alarms
         } else {
-            // During deletion, preserve the exiting card in its original slot while updating every
-            // surviving card by ID. This prevents a key from accidentally receiving another alarm's
-            // content when two alarms swap positions.
             val sourceById = alarms.associateBy { it.id }
             val oldIds = oldDisplayed.map { it.id }.toSet()
             displayedAlarms = buildList {
@@ -333,8 +269,6 @@ fun AlarmsScreen(
         }
 
         if (removed.isNotEmpty()) {
-            // Slightly longer than the visual exit so the final frame is not clipped by the list
-            // mutation. The neighbouring cards then get their own spring placement animation.
             kotlinx.coroutines.delay(360)
             displayedAlarms = displayedAlarms.filter { it.id in sourceIds }
             exitingAlarmIds = exitingAlarmIds - removedIds

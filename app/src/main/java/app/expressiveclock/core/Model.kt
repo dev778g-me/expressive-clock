@@ -8,12 +8,6 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-/**
- * One alarm.
- *
- * [days] empty means a one-shot: it fires at the next occurrence of [time] and disarms itself.
- * That is the same rule Android's own clock uses and it is why [nextFire] needs no separate flag.
- */
 data class Alarm(
     val id: Long,
     val time: LocalTime,
@@ -23,14 +17,6 @@ data class Alarm(
     val vibrate: Boolean = true,
     /** A `content://` ringtone URI, or null for the system default alarm sound. */
     val soundUri: String? = null,
-    /**
-     * Wall-clock millis a snooze is due, or null.
-     *
-     * Snooze lives on the alarm rather than in a side table because it has to survive a reboot and
-     * because it *replaces* the next occurrence: an alarm snoozed at 06:45 must not also ring at
-     * its usual 07:15 twenty seconds later. [nextFire] therefore returns the snooze when one is
-     * pending, which keeps every caller (scheduler, list, boot receiver) automatically correct.
-     */
     val snoozedUntilMillis: Long? = null,
 ) {
     val isOneShot: Boolean get() = days.isEmpty()
@@ -44,7 +30,6 @@ data class Alarm(
         }
         val todayAt = now.with(time).withSecond(0).withNano(0)
         if (isOneShot) return if (todayAt.isAfter(now)) todayAt else todayAt.plusDays(1)
-        // Seven candidates is enough: a repeating alarm always has one inside a week.
         return (0..7).asSequence()
             .map { todayAt.plusDays(it.toLong()) }
             .firstOrNull { it.isAfter(now) && it.dayOfWeek in days }
@@ -129,13 +114,6 @@ data class WorldCity(
 
 enum class TimerState { IDLE, RUNNING, PAUSED, FINISHED }
 
-/**
- * A countdown.
- *
- * Stored as a *deadline* rather than a remaining count, so it stays correct while the process is
- * dead and needs no tick to make progress. [remaining] is derived. Paused timers keep their
- * remaining time and have no deadline.
- */
 data class ClockTimer(
     val id: Long,
     val label: String,
@@ -160,13 +138,6 @@ data class ClockTimer(
 /** One completed lap: its own split, and the total elapsed at the moment it was taken. */
 data class Lap(val index: Int, val split: Duration, val total: Duration)
 
-/**
- * The stopwatch.
- *
- * Also deadline-style: [startedAtElapsed] plus [accumulated] survives a process death, where a
- * ticking counter would not. `elapsedRealtime` and not wall time, so changing the clock or
- * crossing a DST boundary mid-run cannot move it.
- */
 data class Stopwatch(
     val running: Boolean = false,
     val startedAtElapsed: Long = 0L,

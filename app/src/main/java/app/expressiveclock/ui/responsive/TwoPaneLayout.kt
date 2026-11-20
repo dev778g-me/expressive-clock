@@ -14,15 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * A flexible, configurable two-pane layout foundation for expanded window widths.
- *
- * Supports:
- * - Configurable left-pane and right-pane composables.
- * - Configurable left/right weight proportions (e.g. 1f to 1f for equal split, or 0.38f to 0.62f for Master-Detail).
- * - Configurable horizontal gap between panes.
- * - Proper handling of independent pane bounds and edge clipping.
- */
 @Composable
 fun TwoPaneLayout(
     leftPane: @Composable BoxScope.() -> Unit,

@@ -9,12 +9,6 @@ import androidx.compose.ui.unit.dp
 private val TWO_PANE_MIN_WIDTH = 600.dp
 private val TWO_PANE_MIN_HEIGHT = 600.dp
 
-/**
- * Layout classes for responsive switching in Expressive Clock.
- *
- * - [COMPACT]: Either dimension is below 600dp (including phones in landscape).
- * - [EXPANDED]: Width and height are both at least 600dp (unfolded/tablet two-pane layout).
- */
 enum class AppWindowWidthClass {
     COMPACT,
     EXPANDED,
@@ -39,11 +33,6 @@ data class AppWindowSizeInfo(
         get() = widthClass == AppWindowWidthClass.COMPACT
 }
 
-/**
- * Calculates the current window size info from both available window dimensions.
- *
- * Re-evaluates dynamically when screen width changes (e.g. folding/unfolding, window resizing).
- */
 @Composable
 fun rememberAppWindowSizeInfo(): AppWindowSizeInfo {
     val configuration = LocalConfiguration.current

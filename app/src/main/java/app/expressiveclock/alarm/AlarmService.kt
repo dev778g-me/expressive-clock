@@ -28,32 +28,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * The ringer.
- *
- * ## Why this one *is* a foreground service
- *
- * Unlike the timer and stopwatch notifications, which are a timestamp the platform renders, a
- * ringing alarm is genuine ongoing work: a looping `MediaPlayer` and a repeating vibration that
- * must keep running with the screen off and the app long since swapped out. That is what a
- * foreground service is for. It is started from an exact alarm's broadcast, which grants the
- * temporary allowlist that makes a background start legal.
- *
- * The declared type is `mediaPlayback`, an honest description of what it does; there is no
- * alarm-specific type in the enum.
- *
- * ## Audio
- *
- * `USAGE_ALARM` is the whole ballgame. It routes to the alarm stream, so the alarm sounds at alarm
- * volume rather than media volume, it survives Do Not Disturb, and it keeps playing when the user
- * is on a call. `setLooping` because an alarm that plays a four-second ringtone once is not one.
- *
- * ## Giving up
- *
- * [app.expressiveclock.data.AlarmSettings.silenceAfterMinutes] is enforced here rather than by the
- * UI, because by then there may be no UI. When it expires the service stops itself, which is also
- * what makes the notification disappear.
- */
 class AlarmService : Service() {
 
     private var player: MediaPlayer? = null
@@ -70,8 +44,6 @@ class AlarmService : Service() {
             ACTION_START_TIMER -> startTimerChime()
             else -> stopSelf()
         }
-        // Not sticky: a restarted ringer with no intent has no idea which alarm it is, and an
-        // alarm that resurrects itself after the user killed the app is a bug report.
         return START_NOT_STICKY
     }
 
@@ -90,8 +62,6 @@ class AlarmService : Service() {
             if (alarm?.vibrate != false) vibrate(ALARM_PATTERN)
 
             silenceJob = launch {
-                // 0 is "Never". Multiplying it out would `delay(0)` and stop the service on the
-                // next dispatch, so the alarm would silence itself the instant it started ringing.
                 val minutes = settings.alarms.silenceAfterMinutes
                 if (minutes <= 0) return@launch
                 delay(minutes * 60_000L)
@@ -141,8 +111,6 @@ class AlarmService : Service() {
                 start()
             }
         }.onFailure {
-            // A ringtone the user picked can be deleted, or live on an unmounted SD card. Silence
-            // is not an acceptable alarm, so fall back rather than let the exception kill it.
             runCatching {
                 player = MediaPlayer.create(this, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
                     ?.apply { isLooping = true; start() }
@@ -161,7 +129,6 @@ class AlarmService : Service() {
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
-        // Index 0 restarts the pattern from its first element, i.e. repeat forever.
         vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0), attrs)
     }
 
@@ -202,9 +169,6 @@ class AlarmService : Service() {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOngoing(true)
                 .setAutoCancel(false)
-                // The full-screen intent is what wakes the device and puts the dismiss screen in
-                // front of a locked phone. It degrades to a heads-up banner where the permission
-                // is not held. That is still usable, since both actions are on the notification.
                 .setFullScreenIntent(AlarmRingActivity.intent(context, id, label), true)
                 .setContentIntent(AlarmRingActivity.intent(context, id, label))
                 .addAction(0, "Snooze", Notifications.broadcast(context, ClockActionReceiver.ACTION_SNOOZE, 10, id))

@@ -8,21 +8,9 @@ import kotlin.math.pow
 
 data class GeographicPoint(val latitude: Double, val longitude: Double)
 
-/**
- * High-density precalculated WGS84 Mercator landmass dots derived from the NTag/dotted-map
- * Natural Earth 1:10m polygon dataset.
- * License Attribution: MIT License (https://github.com/NTag/dotted-map)
- * Full copyright and permission notice: assets/licenses/world-map-notices.txt.
- */
 object WorldMapData {
     val DOT_OFFSETS: List<Offset> = computeOffsets()
 
-    /**
-     * The map artwork is Mercator-projected, so markers must use the same projection rather than
-     * treating the artwork as equirectangular. The coordinates below are geographic coordinates
-     * for the representative city of common IANA zones; an unknown zone deliberately gets no
-     * fabricated position rather than a misleading marker.
-     */
     private val cityCoordinates = mapOf(
         "America/Los_Angeles" to GeographicPoint(34.0522, -118.2437),
         "America/Vancouver" to GeographicPoint(49.2827, -123.1207),
@@ -59,8 +47,6 @@ object WorldMapData {
     )
 
     fun markerOffset(zoneId: String, city: String? = null): Offset? {
-        // The search also exposes tzdb links such as Australia/West, Australia/South and
-        // Australia/Queensland. Resolve those to Perth, Adelaide and Brisbane before lookup.
         val canonical = android.icu.util.TimeZone.getCanonicalID(zoneId) ?: zoneId
         val point = if (canonical == "America/Los_Angeles" && city == "San Francisco")
             GeographicPoint(37.7749, -122.4194)
@@ -70,8 +56,6 @@ object WorldMapData {
     }
 
     private fun mercatorOffset(point: GeographicPoint): Offset {
-        // Exact projection and dot-bounds normalization from the original height=120 generator.
-        // WGS84 ellipsoidal Mercator (proj4 +proj=merc +datum=WGS84), not spherical Web Mercator.
         val latitude = Math.toRadians(point.latitude.coerceIn(-89.0, 89.0))
         val eccentricity = .08181919084262149
         val eSin = eccentricity * sin(latitude)

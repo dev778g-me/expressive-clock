@@ -100,17 +100,6 @@ import app.expressiveclock.core.stopwatchParts
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
 
-/**
- * The stopwatch.
- *
- * Extrapolated: the concept set contains no stopwatch at all, so this reuses the timer's own
- * vocabulary (the stacked hollow digits, the wide pills) rather than importing a different look.
- * The bottom pair of digits is hundredths, which is why the whole screen is driven off a
- * frame-paced ticker instead of a one-second one.
- *
- * The fastest and slowest laps are marked in tertiary and error. That is not in the renders; it is
- * the one addition, on the grounds that a lap list nobody can compare is just a receipt.
- */
 @Composable
 fun StopwatchScreen(
     stopwatch: Stopwatch,
@@ -197,7 +186,6 @@ fun StopwatchScreen(
     LaunchedEffect(stopwatch.laps) {
         val currentLaps = stopwatch.laps
         if (currentLaps.size > displayedLaps.size) {
-            // Restore the original spring glide and overshoot on lap insertion.
             lapsAlpha.snapTo(1f)
             displayedLaps = currentLaps
             val lapRowHeightPx = with(density) { (LAP_ROW_HEIGHT + 14.dp).toPx() }
@@ -209,7 +197,6 @@ fun StopwatchScreen(
                 ),
             )
         } else if (currentLaps.isEmpty() && displayedLaps.isNotEmpty()) {
-            // Reset: fade out lap bars while gliding scroll back up to top (item 0)
             val fadeJob = scope.launch {
                 lapsAlpha.animateTo(
                     targetValue = 0f,

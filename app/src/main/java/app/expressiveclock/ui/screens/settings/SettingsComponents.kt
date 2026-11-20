@@ -178,7 +178,6 @@ import app.expressiveclock.overlay.OverlayManager
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> ChoicePickerSheet(
@@ -263,10 +262,7 @@ internal enum class SettingsCategory(val title: String, val subtitle: String, va
     ABOUT("About", "Updates and privacy", Icons.Outlined.Info),
 }
 
-// Only the expanded presentation changes; the same controls and callbacks serve both layouts.
 internal val LocalSettingsCategory = staticCompositionLocalOf<SettingsCategory?> { null }
-
-
 
 @Composable
 internal fun Modifier.expandedSettingsTile(): Modifier = if (LocalSettingsCategory.current != null) {
@@ -433,7 +429,6 @@ internal fun OverlayCalibrationDialog(
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
-                // 1. Horizontal offset (X Position)
                 CalibrationControlRow(
                     label = "Horizontal offset",
                     valueDp = relX,
@@ -447,7 +442,6 @@ internal fun OverlayCalibrationDialog(
                     },
                 )
 
-                // 2. Vertical offset (Y Position)
                 CalibrationControlRow(
                     label = "Vertical offset",
                     valueDp = relY,
@@ -461,7 +455,6 @@ internal fun OverlayCalibrationDialog(
                     },
                 )
 
-                // 3. Capsule width
                 CalibrationControlRow(
                     label = "Capsule width",
                     valueDp = relW,
@@ -475,7 +468,6 @@ internal fun OverlayCalibrationDialog(
                     },
                 )
 
-                // 4. Capsule height
                 CalibrationControlRow(
                     label = "Capsule height",
                     valueDp = relH,
@@ -699,7 +691,6 @@ internal fun SettingIcon(icon: ImageVector) {
     )
 }
 
-
 @Composable
 internal fun SettingsDivider() {
     if (LocalSettingsCategory.current != null) return
@@ -784,8 +775,6 @@ internal fun minutesLabel(minutes: Int): String = when (minutes) {
     1 -> "1 minute"
     else -> "$minutes minutes"
 }
-
-
 
 @Composable
 internal fun SinglePresetEditDialog(
@@ -915,7 +904,6 @@ internal fun HorizontalEdgeBlurContainer(
                 compositingStrategy = CompositingStrategy.Offscreen
             }
             .drawWithContent {
-                // Step 1: Draw base scrolling horizontal content
                 drawContent()
 
                 val width = size.width
@@ -924,7 +912,6 @@ internal fun HorizontalEdgeBlurContainer(
 
                 if (width <= 0f || height <= 0f || fadePx <= 0f) return@drawWithContent
 
-                // Step 2: On Android 12+, render genuine progressive hardware blur overlays at left and right edges
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     drawIntoCanvas { canvas ->
                         val nativeCanvas = canvas.nativeCanvas
@@ -934,7 +921,6 @@ internal fun HorizontalEdgeBlurContainer(
                             setPaintBlurEffect(this, 24f, Shader.TileMode.DECAL)
                         }
 
-                        // Left edge hardware blur overlay
                         val leftSave = nativeCanvas.saveLayer(
                             0f, 0f, fadePx, height, blurPaint
                         )
@@ -954,7 +940,6 @@ internal fun HorizontalEdgeBlurContainer(
                         )
                         nativeCanvas.restoreToCount(leftSave)
 
-                        // Right edge hardware blur overlay
                         val rightStart = width - fadePx
                         if (rightStart > 0f) {
                             val rightSave = nativeCanvas.saveLayer(
@@ -979,7 +964,6 @@ internal fun HorizontalEdgeBlurContainer(
                     }
                 }
 
-                // Step 3: Draw smooth alpha gradient falloff at left & right edges
                 drawRect(
                     brush = Brush.horizontalGradient(
                         colors = listOf(

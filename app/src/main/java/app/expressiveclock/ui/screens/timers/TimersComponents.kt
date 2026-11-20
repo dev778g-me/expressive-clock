@@ -107,7 +107,6 @@ import java.time.Duration
 import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
-
 internal fun formatTimer(duration: Duration): String {
     val total = duration.seconds.coerceAtLeast(0)
     return "%02d:%02d:%02d".format(total / 3600, (total % 3600) / 60, total % 60)
@@ -190,7 +189,6 @@ internal fun UpwardSetupDigitCell(
                 color = color,
             )
         } else {
-            // Outgoing digit: moves strictly UPWARDS from 0 to -heightPx while fading out and blurring
             if (progress < 1f && oldChar != null && oldChar != newChar && oldChar != ':') {
                 val outgoingY = -progress * heightPx
                 val outgoingAlpha = (1f - progress * 1.2f).coerceIn(0f, 1f)
@@ -219,15 +217,12 @@ internal fun UpwardSetupDigitCell(
                 }
             }
 
-            // Incoming digit: moves UPWARDS with extended 18dp overshoot (Phase 1: 0ms..200ms UP; Phase 2: 200ms..480ms DOWN)
             val overshootPx = with(density) { 18.dp.toPx() } // Extended vertical overshoot (18dp)
             val incomingY = if (oldChar != null && oldChar != newChar) {
                 if (progress < 0.42f) {
-                    // Phase 1 (0ms -> 200ms): Travels UPWARDS from +heightPx past 0 to -18dp
                     val p1 = progress / 0.42f
                     heightPx - p1 * (heightPx + overshootPx)
                 } else {
-                    // Phase 2 (200ms -> 480ms): Settles smoothly and deliberately DOWNWARDS from -18dp to exact 0
                     val p2 = (progress - 0.42f) / 0.58f
                     -overshootPx * (1f + sin((p2 + 0.5f) * Math.PI.toFloat())) / 2f
                 }
@@ -386,10 +381,6 @@ internal fun TickerTimerReadout(
     }
 }
 
-/**
- * A compatibility wrapper that keeps the timer readout's measuring logic local without changing
- * the surrounding screen API.
- */
 @Composable
 internal fun BoxWithConstraintsCompat(
     modifier: Modifier = Modifier,
@@ -1105,8 +1096,6 @@ internal fun ExpressiveTimerRing(progress: Float, color: Color, running: Boolean
         label = "waveFraction",
     )
 
-
-
     CircularWavyProgressIndicator(
         progress = { progress },
         modifier = Modifier.fillMaxSize(),
@@ -1132,8 +1121,6 @@ internal fun buildSquigglePath(
 
     fun point(degrees: Float): Offset {
         val angle = Math.toRadians((degrees - 90f).toDouble())
-        // Tight, expressive waves with several nearby frequencies so the outline feels organic
-        // without developing a visible seam.
         val primary = kotlin.math.sin(angle * 16.0 + phase)
         val secondary = kotlin.math.sin(angle * 11.0 - phase * 0.68) * 0.34
         val tertiary = kotlin.math.sin(angle * 23.0 + phase * 1.30) * 0.13
@@ -1198,9 +1185,6 @@ internal fun TimerControls(
         }
         return
     }
-    // Intentionally mirrors the Stopwatch control morph so the Timer page uses the exact same
-    // expansion rhythm, spacing, and button choreography. The expanded row is simply Pause/Resume,
-    // +10s, Cancel instead of Lap/Reset/Stop.
     val expanded = hasTimer
     val expand by animateFloatAsState(
         targetValue = if (expanded) 1f else 0f,
@@ -1311,7 +1295,6 @@ internal fun TimerControls(
                             },
                             menuContent = {}
                         )
-//
 
                         customItem(
                             buttonGroupContent = {

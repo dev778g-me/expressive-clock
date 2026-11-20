@@ -7,24 +7,8 @@ import android.graphics.Path
 import app.expressiveclock.data.HandStyle
 import kotlin.math.roundToInt
 
-/**
- * The three hands, each as its own square bitmap pointing at twelve.
- *
- * `AnalogClock` rotates whatever icon it is given about the icon's own centre, so every hand is
- * drawn into a square of side `2 × tipLength` with the pivot dead in the middle and the hand
- * pointing straight up. Getting that wrong is invisible at twelve o'clock and obvious at four.
- *
- * The pin is drawn onto the **topmost enabled hand** rather than onto the face, because
- * `AnalogClock.onDraw` paints dial → hour → minute → second and nothing of ours can get above it.
- * A pin on the face would be buried under all three hands.
- */
 object HandRenderer {
 
-    /**
-     * @param lengthR tip distance from the pivot, as a fraction of Rmin
-     * @param widthR  hand width, as a fraction of Rmin
-     * @param tailR   counterweight length behind the pivot, as a fraction of Rmin
-     */
     fun render(
         style: HandStyle,
         colour: Int,
@@ -36,7 +20,6 @@ object HandRenderer {
         pinColour: Int,
     ): Bitmap {
         val tip = lengthR * rMin
-        // The square has to hold the tail as well, or a long counterweight is clipped.
         val half = maxOf(tip, tailR * rMin) + widthR * rMin
         val side = (2f * half).roundToInt().coerceAtLeast(2)
         val bitmap = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
@@ -48,8 +31,6 @@ object HandRenderer {
         val w = widthR * rMin
         val tail = tailR * rMin
 
-        // Named `fill`, not `paint`: `style` is already this function's HandStyle parameter and
-        // `apply { style = ... }` would resolve to it and quietly fail to compile as something else.
         val fill = Paint(Paint.ANTI_ALIAS_FLAG)
         fill.color = colour
         fill.style = Paint.Style.FILL
@@ -94,15 +75,8 @@ object HandRenderer {
                 },
             )
 
-            /**
-             * A hairline with a disc riding near the tip. That is the counterpoise seconds hand
-             * every chronograph has, and the one shape the six original styles were missing.
-             */
             HandStyle.BALL -> {
                 val ballR = w * 1.5f
-                // The stick runs the *whole* length and the disc rides inboard of the tip, so the
-                // hand still points at something. That is what separates it from [HandStyle.DOT],
-                // where the disc is the tip.
                 canvas.drawRoundRect(
                     cx - w / 4f, cy - tip, cx + w / 4f, cy + tail, w / 4f, w / 4f, fill,
                 )
@@ -112,8 +86,6 @@ object HandRenderer {
             /** Disc at the very tip with no overhang: the Braun/Rams seconds hand. */
             HandStyle.DOT -> {
                 val ballR = w * 1.2f
-                // Hairline stick stopping dead at the disc, and the disc's outer edge *is* the
-                // tip. Thinner stem and smaller disc than [HandStyle.BALL], so the two read apart.
                 canvas.drawRoundRect(
                     cx - w / 6f, cy - tip + ballR * 2f, cx + w / 6f, cy + tail, w / 6f, w / 6f, fill,
                 )

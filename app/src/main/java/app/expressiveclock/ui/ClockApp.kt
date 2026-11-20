@@ -112,15 +112,6 @@ import app.expressiveclock.ui.responsive.rememberAppWindowSizeInfo
 /** Breathing room between the dock and the navigation bar. */
 private val DOCK_CLEARANCE = 20.dp
 
-/**
- * How much of the bottom of every screen the floating dock is standing on.
- *
- * Derived from [DOCK_HEIGHT] rather than restated as a number. It was written out as a literal 96
- * once ("64 of pill, 20 under it, 12 above the last row"), and the moment the pill grew to 72 the
- * comment was still true and the constant was silently 8 dp short, which shows up as the last row
- * of every list tucked a little too far under the dock. There is nothing to notice and nothing to
- * fail; it just quietly looks wrong.
- */
 private val DOCK_RESERVE = DOCK_HEIGHT + DOCK_CLEARANCE + 12.dp
 
 enum class Tab(val label: String, val icon: ImageVector, val key: String) {
@@ -129,16 +120,6 @@ enum class Tab(val label: String, val icon: ImageVector, val key: String) {
     STOPWATCH("Stopwatch", Icons.Outlined.Timer, Notifications.TAB_STOPWATCH),
 }
 
-/**
- * The app shell.
- *
- * Navigation is [ClockDock], a floating pill with a detached add button and no navigation bar, so
- * the alarm grid and the world-clock list run full-bleed to the bottom edge. That component owes
- * the accessibility contract a `ShortNavigationBar` would have supplied for free; see its own
- * documentation for what it pays and why.
- *
- * Settings are always available from the top-right gear, regardless of which page is visible.
- */
 @Composable
 fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -158,12 +139,10 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
 
         var tab by rememberSaveable { mutableStateOf<Tab?>(null) }
 
-        // Hydrate startup tab once settings load from DataStore on cold start
         LaunchedEffect(isSettingsLoaded, startTab) {
             if (isSettingsLoaded && tab == null) {
                 tab = startTab?.let { k -> Tab.entries.firstOrNull { it.key == k } } ?: defaultTab
             } else if (startTab != null) {
-                // Explicit navigation (Dynamic Island / Notification tap)
                 startTab.let { k -> Tab.entries.firstOrNull { it.key == k } }?.let { tab = it }
             }
         }
@@ -221,8 +200,6 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
         }
         val snackbar = remember { SnackbarHostState() }
 
-        // Asked once, on first composition. Denying it costs the notifications and nothing else.
-        // The alarm still rings, because the ringer is a foreground service and audio, not a post.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
             LaunchedEffect(Unit) { ask.launch(Manifest.permission.POST_NOTIFICATIONS) }
@@ -307,11 +284,6 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
                 }
             },
         ) { padding ->
-            // Keep the bars' insets but let each screen own its horizontal margin, so a grid
-            // and a full-bleed dial can differ without fighting the Scaffold.
-            //
-            // The dock floats over the content rather than displacing it, so the space it occupies
-            // has to be reserved here by hand; otherwise the last alarm tile sits under the pill.
             val ld = LocalLayoutDirection.current
             val underDock = padding.calculateBottomPadding() + DOCK_RESERVE
             val body = PaddingValues(
@@ -393,7 +365,6 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
 
                     Tab.TIMERS -> {
                         val timer by vm.timer.collectAsStateWithLifecycle()
-                        // Only tick while a timer exists; the setting screen has nothing moving.
                         val now by rememberElapsedTicker(active = timer != null)
                         TimersScreen(
                             timer = timer,
@@ -557,7 +528,6 @@ fun ClockApp(startTab: String? = null, vm: ClockViewModel = viewModel()) {
         }
     }
 }
-
 
 @Composable
 private fun RowScope.FloatingToolbarNavItem(

@@ -190,10 +190,7 @@ fun AlarmPickerSheetContent(
             )
         }
 
-
-
         Spacer(Modifier.height(8.dp))
-
 
         var scrollMode by remember { mutableStateOf(true) }
 
@@ -254,7 +251,6 @@ fun AlarmPickerSheetContent(
                 }
             }
 
-
         Spacer(Modifier.height(8.dp))
 
         Row(
@@ -273,8 +269,6 @@ fun AlarmPickerSheetContent(
 
             }
         }
-
-
 
         Spacer(Modifier.height(8.dp))
 
@@ -548,7 +542,6 @@ internal fun SheetHeaderButton(
     onClick: () -> Unit,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
-
 
    if (primary){
        Button(

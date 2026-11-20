@@ -19,17 +19,6 @@ import androidx.compose.ui.unit.dp
 import app.expressiveclock.data.ThemeSettings
 import app.expressiveclock.ui.screens.ThemePresetPicker
 
-/**
- * Theme presets, as a bottom sheet rather than a block in the settings list.
- *
- * Sixteen preview cards would be the tallest thing on the screen by a wide margin and would sit
- * above it permanently to change something that is chosen a handful of times in the app's life.
- * As a sheet the settings list keeps one row for it, and opening it puts the grid at a comfortable
- * thumb height with the current settings still visible above the sheet's edge.
- *
- * Tapping a card applies immediately and closes — there is no confirm step — and dismissal
- * without a choice (scrim or swipe) leaves the theme untouched.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemePresetSheet(

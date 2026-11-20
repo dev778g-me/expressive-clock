@@ -46,17 +46,6 @@ import java.util.Locale
 
 private const val SHEET_MAX_FRACTION = 0.82f
 
-/**
- * Pick a city.
- *
- * The list is the platform's own `ZoneId.getAvailableZoneIds()` (some six hundred entries) rather
- * than a bundled table of cities, so it is exactly as current as the device's tzdb and needs no
- * maintenance. The tradeoff is that a zone id is not a city name, so [prettify] does the work:
- * `America/Argentina/Buenos_Aires` becomes "Buenos Aires · Argentina".
- *
- * Zones are filtered to those with a region prefix, which drops the legacy aliases (`EST`, `GMT+3`,
- * `US/Pacific`) that would otherwise triple the list with duplicates of entries already in it.
- */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AddCitySheet(
@@ -83,8 +72,6 @@ fun AddCitySheet(
     }
 
     CityPickerContainer(inline = inline, onDismiss = onDismiss) {
-        // Fixed rather than capped: this sheet is a search field over six hundred rows, so it
-        // wants to be as tall as it is allowed to be every time, not to grow as you type.
         Column(if (inline) Modifier.fillMaxSize() else Modifier.height(LocalConfiguration.current.screenHeightDp.dp * SHEET_MAX_FRACTION)) {
             if (inline) {
                 Box(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 14.dp)) {
@@ -109,8 +96,6 @@ fun AddCitySheet(
                     Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 placeholder = { Text("Search cities or countries") },
-                // Fully rounded. The default text-field shape is the small extra-small corner,
-                // which next to a pill-shaped sheet and pill-shaped rows looks like a leftover.
                 shape = CircleShape,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -178,10 +163,6 @@ private fun localTime(zone: ZoneId, nowUtcMillis: Long): String =
     ZonedDateTime.ofInstant(Instant.ofEpochMilli(nowUtcMillis), zone)
         .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
 
-/**
- * `Europe/Paris` → city "Paris", region "Europe". Three-segment ids keep the middle as the region,
- * which is the useful half: `America/Argentina/Buenos_Aires` is in Argentina, not in America.
- */
 internal fun prettify(id: String): WorldCity {
     val parts = id.split("/")
     val city = parts.last().replace('_', ' ')

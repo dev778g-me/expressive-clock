@@ -15,14 +15,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Duration
 
-/**
- * The buttons on the notifications, and nothing else.
- *
- * Every one of these does exactly what the equivalent button in the app does, by writing the same
- * store, which is the reason the app needs no code to hear about it. `ClockStore` exposes flows,
- * the view model collects them, so pausing a timer from the shade updates the running screen
- * behind it with no broadcast, no binder and no event bus.
- */
 class ClockActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -60,8 +52,6 @@ class ClockActionReceiver : BroadcastReceiver() {
         val minutes = store.settingsNow().alarms.snoozeMinutes
         val due = System.currentTimeMillis() + minutes * 60_000L
         val updated = store.alarmsNow().map {
-            // Re-arming matters for a one-shot: firing disabled it, and a snooze has to bring it
-            // back or the second ring never happens.
             if (it.id == id) it.copy(snoozedUntilMillis = due, enabled = true) else it
         }
         store.putAlarms(updated)

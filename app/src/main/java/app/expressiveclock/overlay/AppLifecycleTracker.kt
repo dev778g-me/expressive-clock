@@ -4,12 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 
-/**
- * Tracks whether the Clock application is currently in the foreground or background.
- *
- * When the user is actively using the Clock app UI, floating overlays are hidden because they
- * would be redundant over our own full-screen pages.
- */
 object AppLifecycleTracker : Application.ActivityLifecycleCallbacks {
 
     var isAppInForeground: Boolean = false

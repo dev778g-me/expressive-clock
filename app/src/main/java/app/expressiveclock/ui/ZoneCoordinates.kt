@@ -1,9 +1,5 @@
 package app.expressiveclock.ui
 
-/** IANA zone.tab representative-city coordinates (public domain, system tzdb snapshot).
- * A zone identifies a representative city, not the device's physical location.
- * Keep this separate from saved cities and the preserved dotted-map artwork.
- */
 internal object ZoneCoordinates {
     val byZone: Map<String, GeographicPoint> by lazy {
         DATA.lineSequence().filter { it.isNotBlank() }.associate { line ->

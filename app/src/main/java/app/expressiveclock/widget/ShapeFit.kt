@@ -16,28 +16,6 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.min
 
-/**
- * Fitting a Material shape into a widget's rectangle so it touches all four edges and crosses none.
- *
- * Everything here is `android.graphics` and `androidx.graphics.shapes` only. The `toPath`/`toShape`
- * overloads in material3 take a `Composer` and cannot be called from a widget, but
- * `Shapes_androidKt.toPath(RoundedPolygon, android.graphics.Path)` is a plain function and is what
- * these use.
- */
-
-/**
- * Maps the polygon's **exact ink bounds** onto the rectangle.
- *
- * `calculateBounds()` defaults to `approximate = true`, which returns the union of the Bézier
- * *control-point* boxes, a strict superset of the ink and not a tight one. Measured waste if you
- * trust it: Semicircle 18.75 %, Clamshell 16.28 %, Arrow 11.53 %, Cookie4Sided 6.22 % on all four
- * sides. Every one of those is a visible gap between the face and the widget's edge, which is
- * exactly what must not happen. `approximate = false` solves the cubic-derivative roots instead and
- * is exact.
- *
- * Affine maps commute with Bézier evaluation, so scaling control points and scaling the rendered
- * curve give the identical curve and the transform itself contributes no error.
- */
 fun RoundedPolygon.fillRect(
     l: Float,
     t: Float,
@@ -67,21 +45,6 @@ fun RoundedPolygon.fillRect(
     return out
 }
 
-/**
- * A diagonal stadium that inscribes the widget exactly, touching all four edges, with **no
- * distortion**. It is a true pill moved by a rotation and a translation, so its caps stay
- * perfectly circular.
- *
- * From a stadium's support function `h(n) = c·n + L|u·n| + r`, touching all four sides requires
- * `2(L|cos θ| + r) = W` and `2(L|sin θ| + r) = H`. Setting θ = 45° therefore *forces* W = H: a
- * 45° stadium's bounding box is always square. Dropping the angle constraint and keeping "touches
- * all four sides" leaves this one-parameter family in `r`, whose angle is
- * `atan2(H/2 − r, W/2 − r)`, or 12–18° on a wide widget. That is the honest diagonal; a
- * visually-45° pill that also fills a non-square box does not exist.
- *
- * `r → 0` degenerates to the rectangle's own diagonal; `r → min(W,H)/2` collapses to a horizontal
- * pill.
- */
 fun diagonalPill(
     w: Float,
     h: Float,
@@ -92,7 +55,6 @@ fun diagonalPill(
     val ax = w / 2f - r
     val ay = h / 2f - r
     if (ax <= 0f || ay <= 0f) {
-        // Degenerate box, so fall back to the plain pill rather than throwing inside a receiver.
         return RoundedPolygon.pill(width = w, height = h, centerX = w / 2f, centerY = h / 2f)
             .toPath(out)
     }
@@ -109,14 +71,6 @@ fun diagonalPill(
     return out
 }
 
-/**
- * The face outline for a configuration, in pixels, filling `w × h`.
- *
- * The four parametric shapes are *rebuilt* at the target aspect so their corners stay circular.
- * Everything else is a baked point list and can only be stretched, which turns circular roundings
- * into ellipses of semi-axes `(r·sx, r·sy)`. That is unavoidable, and it is the reason
- * [FitMode.UNIFORM] is offered.
- */
 fun facePath(
     shape: FaceShape,
     pill: PillOrientation,
@@ -150,8 +104,6 @@ fun facePath(
 
         FaceShape.PILL -> when (pill) {
             PillOrientation.DIAGONAL -> diagonalPill(w, h, out = out)
-            // `RoundedPolygon.pill` picks its own long axis from width vs height, so the two
-            // upright orientations only differ when the widget is close to square.
             PillOrientation.VERTICAL ->
                 RoundedPolygon.pill(min(w, h), h, centerX = w / 2f, centerY = h / 2f).toPath(out)
             PillOrientation.HORIZONTAL ->
@@ -162,13 +114,6 @@ fun facePath(
     }
 }
 
-/**
- * The baked Material point list behind a non-parametric [FaceShape].
- *
- * Each getter returns a cached, already-normalised `RoundedPolygon`, so this is cheap and safe to
- * call per draw. Circle is the fallback rather than a throw: an enum value from a newer build must
- * degrade to a working clock.
- */
 fun FaceShape.materialShape(): RoundedPolygon = when (this) {
     FaceShape.ARCH -> MaterialShapes.Arch
     FaceShape.ARROW -> MaterialShapes.Arrow

@@ -147,39 +147,8 @@ import app.expressiveclock.ui.theme.StretchedCaps
 import java.time.DayOfWeek
 import kotlin.math.sin
 
-/**
- * The alarm grid.
- *
- * Proportions are measured off the research-concept renders in `clock-mockups/reference/concept/`.
- * At 412 dp wide the render gives a tile of 184 × 250 dp on a 15.7 dp margin with a 12 dp gutter,
- * a 23.9 dp corner radius, and an hour numeral whose cap height is 153 dp: **0.62 of the tile**.
- * That figure is the design; it is what makes the grid read as a wall of numerals rather than a
- * list of cards with big text on them.
- *
- * Armed and disarmed differ by **weight, not by fill**: `wght` 260 against `wght` 120 on the same
- * ultra-condensed cut, solved from the render's measured stem-over-cap of 0.0639 and 0.0306. The
- * off state is a light numeral, not an outlined one.
- *
- * Every element of the time (hour, minutes, meridiem) carries the *same* tracking. See
- * [ClockFace.CONDENSED_TRACKING] for why that is one constant rather than solved per element.
- */
-/**
- * The inset every edge of the tile shares: numeral ink, day letters, switch track alike.
- *
- * The render measured this twice and got the same answer both times: numeral ink 17.9 dp down a
- * 250 dp tile, and the switch's visible track 18.2 dp up from its bottom. It was a *fraction* of
- * the tile height while the tile had a fixed aspect; now the height is derived from the content it
- * has to be an absolute, or the two would chase each other.
- */
 private const val CONTENT_INSET_DP = 18.1f
 
-/**
- * From the top of the day row's box to the bottom of the switch you can *see*.
- *
- * `Switch` is 48 dp of touch target around a 32 dp track, centred, so the visible track starts 8 dp
- * down. The column's bottom padding gives the other 8 dp back, which is what lands the track on
- * [CONTENT_INSET_DP].
- */
 private const val SWITCH_ROW_VISIBLE_DP = 40f
 /** Measured: the minutes are three-quarters of the hour's cap height, cap-tops aligned. */
 private const val MINUTE_CAP_FRACTION = 0.743f
@@ -187,28 +156,8 @@ private const val MINUTE_CAP_FRACTION = 0.743f
 private const val MERIDIEM_FRACTION = 0.145f
 /** Derived, so the column closes on the hour's baseline: 1 − 0.743 − 0.145. */
 private const val MERIDIEM_GAP_FRACTION = 1f - MINUTE_CAP_FRACTION - MERIDIEM_FRACTION
-/**
- * The gap between the hour's and the minutes' boxes, as a fraction of the hour's cap.
- *
- * A fraction rather than the 8.3 dp it was measured at, because the cap is now solved per tile: a
- * fixed gap would be a different proportion of a 140 dp numeral than of a 170 dp one, and the fit
- * would drift between tiles.
- */
-/**
- * What one step of [ClockFace.TRACKING_DELTA] is worth, measured in hour-caps.
- *
- * Tracking is in em and this gap is in caps, so the two only trade through the digit's own
- * ink-to-em ratio: a font size of `cap / DIGIT_EM` means `delta` em is `delta / DIGIT_EM` of a cap.
- * There are exactly two internal digit gaps in a time, one inside the hour and one inside the
- * minutes, so twice this comes out of the gap between them and the block's width is unchanged.
- */
 private const val TRACKING_DELTA_AS_CAP = ClockFace.TRACKING_DELTA / ClockFace.DIGIT_EM
 private const val GAP_FRACTION = 8.3f / 155f - 2f * TRACKING_DELTA_AS_CAP
-/**
- * `Switch` reserves a 48 dp touch target around a 32 dp track, so its visible top is 8 dp below the
- * row's. Every vertical measurement here is of the switch you can *see*, so the row is placed 8 dp
- * higher than the number says.
- */
 private const val SWITCH_TOUCH_INSET_DP = 8f
 /** A little shorter than the switch's 32 dp track, because level with it reads as shouting. */
 private const val DAY_CAP_DP = 23f
@@ -216,7 +165,6 @@ private const val DAY_CAP_DP = 23f
 private const val DAY_BLOCK_DP = 91f
 /** The constant slice of space between letters. The scale is derived from it, not tuned. */
 private const val DAY_TRACKING_DP = 2.2f
-
 
 @Composable
 internal fun ExpandedAlarmsScreen(
@@ -569,10 +517,6 @@ internal fun WorldMapIllustration(
     }
 }
 
-/**
- * Fixed edge blur and fade container anchored at top (Settings icon level) and bottom (Nav bar level).
- * Renders in parent layout above the scrolling alarm grid content.
- */
 @Composable
 fun FixedEdgeBlurContainer(
     topInset: Dp,
@@ -587,7 +531,6 @@ fun FixedEdgeBlurContainer(
                 compositingStrategy = CompositingStrategy.Offscreen
             }
             .drawWithContent {
-                // Step 1: Draw the base sharp scrolling alarm grid
                 drawContent()
 
                 val width = size.width
@@ -595,7 +538,6 @@ fun FixedEdgeBlurContainer(
                 val topInsetPx = topInset.toPx()
                 val bottomInsetPx = bottomInset.toPx()
 
-                // Step 2: On Android 12+, render genuine progressive hardware blur overlays
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     drawIntoCanvas { canvas ->
                         val nativeCanvas = canvas.nativeCanvas
@@ -611,14 +553,12 @@ fun FixedEdgeBlurContainer(
                             setPaintBlurEffect(blurPaint, 32f, tileMode)
                         }
 
-                        // Fixed top edge blur overlay (from y = 0 down to Settings icon level)
                         if (topInsetPx > 0f) {
                             val saveCount = nativeCanvas.saveLayer(
                                 0f, 0f, width, topInsetPx, blurPaint
                             )
                             drawContent()
 
-                            // Organic gradient mask for top blur
                             drawRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
@@ -634,7 +574,6 @@ fun FixedEdgeBlurContainer(
                             nativeCanvas.restoreToCount(saveCount)
                         }
 
-                        // Fixed bottom edge blur overlay (from top edge of nav bar to bottom)
                         val bottomStart = height - bottomInsetPx
                         if (bottomInsetPx > 0f && bottomStart < height) {
                             val saveCount = nativeCanvas.saveLayer(
@@ -642,7 +581,6 @@ fun FixedEdgeBlurContainer(
                             )
                             drawContent()
 
-                            // Organic gradient mask for bottom blur
                             drawRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
@@ -660,7 +598,6 @@ fun FixedEdgeBlurContainer(
                     }
                 }
 
-                // Step 3: Smooth organic gradient fade mask for extreme top & bottom edge dissolve
                 if (topInsetPx > 0f) {
                     drawRect(
                         brush = Brush.verticalGradient(
@@ -705,49 +642,12 @@ internal fun setPaintBlurEffect(paint: Paint, radius: Float, tileMode: Shader.Ti
     }
 }
 
-/**
- * The one cap height every tile in the grid is set at.
- *
- * Everything here is linear in the cap. The numerals are ink-tight, the gap is a fraction of the
- * cap and the meridiem is a fraction of the cap, so one measurement at a reference size gives the
- * constant of proportionality and the answer is a division.
- *
- * ## Why this takes no arguments about *this* tile
- *
- * It used to. It solved the cap per tile from that tile's own **ink**, and returned a per-tile
- * shift that centred that ink. Both were wrong, and together they were the whole bug:
- *
- *  - **Ink varies with the digits.** At `wdth` 25 a four-digit time spans 0.645 em (`11:15`) to
- *    0.820 em (`06:40`) in proportional figures. On a 174 dp tile that is a 45 dp swing in the
- *    block's width.
- *  - **The ceiling always won.** Solved over all 720 times, the width fit *never* came in under
- *    the old `0.62 * tileHeight` ceiling. The cap was therefore always the ceiling, the fit never
- *    bound, and every one of those 45 dp went into slack instead of into the numeral.
- *  - **The shift then split that slack.** `06:40` filled the tile and sat on a 12.7 dp margin;
- *    `07:15` was 35 dp narrower and sat on a 22.5 dp one. Two tiles side by side, ten dp apart,
- *    for no reason a reader could see.
- *
- * The fix is upstream of all three: with tabular figures every time is the same number of identical
- * cells, so there is exactly one answer and it is the same for every tile. This function computes
- * it from `"00"` at [ClockFace.WEIGHT_ON], never from the tile's own time or weight, precisely so
- * that it cannot come out differently anywhere.
- *
- * It still divides by [available], so a wider or narrower tile still gets a cap that fits, and
- * [ceiling] still stops a wide tile growing the numeral down into the switch.
- *
- * The meridiem stays in the max for safety, though tabular minutes are now always the wider of the
- * two: `00` at 0.743 cap is 71.5 dp against `AM`'s 28 dp at 0.145 cap.
- */
 internal class TimeFit(val cap: Dp, val padStart: Dp, val padEnd: Dp)
 
 @Composable
 internal fun fittedTime(meridiem: String, tileWidth: Dp, target: Dp): TimeFit {
     val density = LocalDensity.current
     val ref = REFERENCE_CAP_DP.dp
-    // `WEIGHT_ON` whatever this tile's weight is, and "00" whatever its time is. Both are
-    // deliberate: the answer has to be the *same number on every tile in the grid*, so it may not
-    // depend on either. Armed is the wider of the two weights, so solving from it is also what
-    // guarantees no tile overflows.
     val hourStyle = ClockFace.numerals(
         ref, ClockFace.CONDENSED, ClockFace.WEIGHT_ON,
         tabular = true, tracking = ClockFace.CONDENSED_TRACKING,
@@ -765,31 +665,14 @@ internal fun fittedTime(meridiem: String, tileWidth: Dp, target: Dp): TimeFit {
 
     return remember(h, m, a, tileWidth, target, density) {
         with(density) {
-            // **Advance, not ink.** Ink is what varies between digits even when tabular has made
-            // the cells identical, so fitting to ink puts the variation straight back into the
-            // margins. The advance box is the grid the digits are set on, and it is the thing that
-            // has to line up from tile to tile.
             val trailing = if (m.advance >= a.advance) m else a
 
-            // Everything as a multiple of the cap, so the whole thing solves in closed form.
-            //  k  is the block's advance
-            //  lf is how far the hour's ink starts inside the block's leading edge
-            //  rf is how far the trailing ink stops short of its trailing edge
             val k = (h.advance + maxOf(m.advance, a.advance)).toDp() / ref + GAP_FRACTION
             val lf = h.left.toDp() / ref
             val rf = trailing.right.toDp() / ref
 
-            // Solve the cap that puts the **ink**, not the box, exactly [target] from both edges:
-            //     target + lf*cap + k*cap + rf*cap + target = tileWidth
-            // The two bearings are not equal: the hour's is at full size, the trailing element's at
-            // 0.743 of it less a step of negative tracking. That is precisely why padding the box
-            // symmetrically cannot square the two visible margins, and why an earlier "shift by half
-            // the difference" only ever closed part of the gap. Solving for the ink leaves no gap.
             val cap = (tileWidth - target * 2f) / (k - lf - rf)
 
-            // The block fills exactly, so this is nought. It is kept because it is what makes
-            // the two *ink* margins equal rather than the two box margins, if a caller ever
-            // clamps the cap.
             val slack = tileWidth - cap * k
             val padStart = (slack + cap * (rf - lf)) / 2f
             TimeFit(cap = cap, padStart = padStart, padEnd = slack - padStart)
@@ -800,21 +683,6 @@ internal fun fittedTime(meridiem: String, tileWidth: Dp, target: Dp): TimeFit {
 /** The `wdth` that makes the meridiem as wide as the minutes, and the shift that squares them up. */
 internal class MeridiemFit(val width: Float, val offsetX: Dp)
 
-/**
- * Stretches `AM`/`PM` on the **width axis** until its ink is exactly as wide as the minutes above
- * it, then nudges it so the two are concentric.
- *
- * Only possible because the minutes are now tabular: their ink is one width for every time, so
- * there is a single target to solve against rather than sixty. Solved by bisection on `wdth`
- * because ink width is monotonic in the axis but not linear in it. Measured, `AM` runs 0.269 of
- * the hour's cap at `wdth` 100 and 0.498 at 151, so a straight interpolation between the ends
- * misses by several dp in the middle.
- *
- * `AM` and `PM` land on different axis values (about 130 and 140), and that is the point: matching
- * their *widths* is what makes them interchangeable in the tile, and no single axis value does that
- * for both. Both sit comfortably inside the font's 25–151 range, so nothing is clamped and no
- * horizontal scale is involved: these are real widths the typeface was drawn to hold.
- */
 @Composable
 internal fun rememberMeridiemFit(
     meridiem: String,
@@ -825,13 +693,6 @@ internal fun rememberMeridiemFit(
     val resolver = LocalFontFamilyResolver.current
     val density = LocalDensity.current
     return remember(meridiem, minutes, hourCap, weight, density) {
-        // Measured at the size it will be drawn at, and **not** at some multiple of it.
-        //
-        // `getTextBounds` reports whole pixels, so measuring larger and scaling down is the obvious
-        // way to keep rounding out of the answer. It is wrong for this face: `opsz` is an axis here
-        // and [ClockFace.capitals] drives it from the size, so a 4x measurement is of a differently
-        // *shaped* glyph, and the `wdth` it solves comes out 3-6 dp narrow at the real size. Tried
-        // and measured; the pixel of rounding it saves is not worth the width it costs.
         val minuteInk = inkBounds(
             resolver, density, minutes,
             ClockFace.numerals(
@@ -853,17 +714,6 @@ internal fun rememberMeridiemFit(
         }
         val width = (lo + hi) / 2f
         val fitted = measure(width)
-        // Both are centred in the same column, so their *boxes* line up; the ink inside each does
-        // not, because a capital's bearings are nothing like a digit's. Concentric ink is what the
-        // eye reads as aligned.
-        //
-        // Two terms, and the second is easy to miss. Column width is `max(Wm, Wa)` and both boxes
-        // are centred in it, so their origins already differ by half the difference of their
-        // *advances* before any ink is considered. Leaving that out leaves the meridiem right of
-        // where it belongs by an amount that depends on the minutes' bearings: measured, 4.5 px
-        // under `15` but 8.0 px under `00`, because a tabular pair of zeros carries 64 units of
-        // bearing each side against `15`'s 33 and 71. It reads as "some times line up and some
-        // don't", which is exactly how it was reported.
         val boxOffset = (fitted.advance - minuteInk.advance) / 2f
         val minuteMid = minuteInk.left + minuteInk.width / 2f
         val meridiemMid = fitted.left + fitted.width / 2f
@@ -918,8 +768,6 @@ internal fun AlarmTile(
         animationSpec = tween(220),
         label = "alarmInk",
     )
-    // Separate entrance scale from the armed-state scale so creating an alarm can have its own
-    // subtle bounce without disturbing the polished enable/disable animation.
     val cardScale = remember { Animatable(1f) }
     var hasComposed by remember { androidx.compose.runtime.mutableStateOf(false) }
 
@@ -1231,13 +1079,6 @@ internal fun DeleteAlarmsConfirmationSheet(
     }
 }
 
-/**
- * Animated numeric display for the alarm tile.
- *
- * When an alarm is edited, the number rolls toward its new value rather than being replaced in a
- * single frame. Increasing values enter from below and decreasing values enter from above, with a
- * restrained spring so the final position has a tiny amount of physical bounce.
- */
 private const val ALARM_DIGIT_BOTTOM_BLEED_DP = 2
 
 @Composable
@@ -1247,9 +1088,6 @@ internal fun AnimatedAlarmNumber(
     color: Color,
     weight: Int,
 ) {
-    // Keep the two digits in the same horizontal geometry as the original two-character numeral,
-    // but give each digit its own vertical viewport and animation state. This is important for the
-    // alarm tiles: a change from 09 -> 10 should not make the whole number move as one object.
     val digits = "%02d".format(value)
 
     Row(
@@ -1282,8 +1120,6 @@ internal fun AnimatedAlarmDigit(
     AnimatedContent(
         targetState = digit,
         transitionSpec = {
-            // Treat each character like a tiny physical ticker wheel. The shortest path around
-            // 0..9 gives 9 -> 0 and 0 -> 9 the same natural direction as a real digit wheel.
             val forward = (targetState - initialState + 10) % 10
             val increasing = forward in 1..5
             val enterOffset: (Int) -> Int = if (increasing) { { it } } else { { -it } }
@@ -1316,8 +1152,6 @@ internal fun AnimatedAlarmDigit(
         label = "alarmDigitChange_$key",
         contentAlignment = Alignment.Center,
     ) { target ->
-        // The fixed-height box is deliberately clipped. The spring is allowed to overshoot, but
-        // the digit must never paint outside the alarm tile or collide with the day row below it.
         Box(
             modifier = Modifier
                 .height(capHeight + ALARM_DIGIT_BOTTOM_BLEED_DP.dp)
@@ -1336,32 +1170,6 @@ internal fun AnimatedAlarmDigit(
     }
 }
 
-/**
- * The repeat days, on the switch's own line.
- *
- * ## One text run, so the spacing is the font's
- *
- * Two earlier attempts gave each letter its own fixed-width box: first every box the same, then
- * each box sized to its own advance. Both are the same mistake in different clothes. A box
- * boundary is a wall the shaper cannot see across, so the side bearings the type designer drew get
- * overridden by an invented cell width and no kerning pair can apply. Equal boxes put 6.9 dp beside
- * `F` and 2.3 dp beside `T`; advance-sized boxes still left slack around every inactive letter,
- * because a light glyph is narrower than the bold cell it was centred in.
- *
- * So all seven are **one** [AnnotatedString], each letter a span carrying its own weight and
- * colour. The text engine then spaces them exactly as the font says to, which is the only
- * definition of "even" that the eye agrees with.
- *
- * ## And the block still cannot change width
- *
- * The switch sits beside this and must land in the same place on every tile, so the run is squeezed
- * to [DAY_BLOCK_DP] by a scale *derived* from its own measured width rather than tuned. A tile with
- * more bold letters squeezes a fraction harder (about 1.5 % between the extremes, some 0.2 dp on
- * a letter), and the block, and so the switch, does not move at all.
- *
- * [DAY_TRACKING_DP] is inside that squeeze, so tightening it hands the space straight to the
- * letters: block width fixed, tracking down, glyphs wider.
- */
 @Composable
 internal fun DayLetters(alarm: Alarm, order: List<DayOfWeek>, ink: Color) {
     val measurer = rememberTextMeasurer()
@@ -1386,7 +1194,6 @@ internal fun DayLetters(alarm: Alarm, order: List<DayOfWeek>, ink: Color) {
         }
     }
 
-    // Tracking in em, so it rides the type size the way the rest of the face's tracking does.
     val style = bold.copy(
         letterSpacing = with(density) { (DAY_TRACKING_DP.dp / bold.fontSize.toDp()).em },
     )
@@ -1477,7 +1284,6 @@ internal fun SleepingAlarmClockIcon(
     color: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
     bellColor: Color = color.copy(alpha = 0.50f),
 ) {
-    // 1. Occasional clock ring/tilt vibration animation
     val clockRotation = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
@@ -1493,7 +1299,6 @@ internal fun SleepingAlarmClockIcon(
         }
     }
 
-    // 2. Continuous staggered Z drift & fade animations
     val zTransition = rememberInfiniteTransition(label = "zLanesTransition")
 
     val z0Progress by zTransition.animateFloat(
@@ -1532,9 +1337,7 @@ internal fun SleepingAlarmClockIcon(
         val cy = size.height * 0.70f
         val r = size.width * 0.24f
 
-        // Clock Body (rotates occasionally when ringing)
         rotate(degrees = clockRotation.value, pivot = Offset(cx, cy)) {
-            // 1. Main Clock Face Circle Body
             drawCircle(
                 color = color,
                 radius = r,
@@ -1542,7 +1345,6 @@ internal fun SleepingAlarmClockIcon(
                 style = Stroke(width = strokeWidth),
             )
 
-            // 2. Bottom Feet
             val footLength = r * 0.38f
             val leftFootStart = Offset(cx - r * 0.707f, cy + r * 0.707f)
             val leftFootEnd = Offset(
@@ -1570,10 +1372,8 @@ internal fun SleepingAlarmClockIcon(
                 cap = StrokeCap.Round,
             )
 
-            // 3. Separate Alarm Bells sitting higher and slightly outward, in a lighter blue tone
             val bellRadius = r * 0.32f
 
-            // Left bell
             val leftBellCenter = Offset(cx - r * 0.76f, cy - r * 0.82f)
             drawArc(
                 color = bellColor,
@@ -1585,7 +1385,6 @@ internal fun SleepingAlarmClockIcon(
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
             )
 
-            // Right bell
             val rightBellCenter = Offset(cx + r * 0.76f, cy - r * 0.82f)
             drawArc(
                 color = bellColor,
@@ -1597,14 +1396,12 @@ internal fun SleepingAlarmClockIcon(
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
             )
 
-            // 4. Clock Hands (10:00 position)
             drawCircle(
                 color = color,
                 radius = strokeWidth * 0.75f,
                 center = Offset(cx, cy),
             )
 
-            // Minute hand (12:00)
             drawLine(
                 color = color,
                 start = Offset(cx, cy),
@@ -1613,7 +1410,6 @@ internal fun SleepingAlarmClockIcon(
                 cap = StrokeCap.Round,
             )
 
-            // Hour hand (10:00)
             drawLine(
                 color = color,
                 start = Offset(cx, cy),
@@ -1623,7 +1419,6 @@ internal fun SleepingAlarmClockIcon(
             )
         }
 
-        // 5. Floating Z marks restricted to their own dedicated, non-overlapping spatial lanes
         fun drawZMarkInLane(
             baseX: Float,
             baseY: Float,
@@ -1663,7 +1458,6 @@ internal fun SleepingAlarmClockIcon(
             }
         }
 
-        // Smallest Z - Lowest Lane (well above top of right bell)
         drawZMarkInLane(
             baseX = cx + r * 0.55f,
             baseY = cy - r * 1.55f,
@@ -1674,7 +1468,6 @@ internal fun SleepingAlarmClockIcon(
             maxRotation = -4.0f,
         )
 
-        // Medium Z - Middle Lane (guaranteed 12dp gap above Smallest Z top point)
         drawZMarkInLane(
             baseX = cx + r * 1.05f,
             baseY = cy - r * 2.50f,
@@ -1685,7 +1478,6 @@ internal fun SleepingAlarmClockIcon(
             maxRotation = 4.5f,
         )
 
-        // Largest Z - Highest Lane (guaranteed 14dp gap above Medium Z top point)
         drawZMarkInLane(
             baseX = cx + r * 1.55f,
             baseY = cy - r * 3.65f,

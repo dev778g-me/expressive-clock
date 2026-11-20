@@ -354,16 +354,11 @@ fun SettingsScreen(
                         subtitle = "Use wallpaper colours",
                         checked = settings.theme.dynamicColor,
                         isFirst = false,
-                        // With the wallpaper theme on, everything below collapses and this
-                        // becomes the last row in the card — so its bottom corners round.
                         isLast = settings.theme.dynamicColor,
                         onCheckedChange = { value ->
                             onChange { it.copy(theme = it.theme.copy(dynamicColor = value)) }
                         },
                     )
-                    // Wallpaper colour off? The preset row is the only thing left, so it carries
-                    // the bottom corners of the card. Wallpaper on? It leaves with a vertical
-                    // collapse rather than popping out.
                     AnimatedVisibility(
                         visible = !settings.theme.dynamicColor,
                         enter = expandVertically() + fadeIn(),

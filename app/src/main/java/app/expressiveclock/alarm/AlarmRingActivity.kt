@@ -36,21 +36,6 @@ import app.expressiveclock.ui.theme.ClockTheme
 import app.expressiveclock.ui.theme.Numerals
 import java.time.LocalTime
 
-/**
- * The screen a ringing alarm puts in front of you.
- *
- * ## Getting onto a locked phone
- *
- * `setShowWhenLocked` and `setTurnScreenOn` are the modern replacements for the deprecated window
- * flags, and they are the reason this appears over the keyguard with the display off. They are set
- * before `setContent` because the window attributes have to be right before the first frame.
- *
- * ## No back button
- *
- * Backing out of a ringing alarm would leave it ringing with no way to reach the controls except
- * the shade. The only exits are Snooze and Dismiss, which is the same contract every alarm clock
- * has had since they had a bell on top.
- */
 class AlarmRingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -149,7 +134,6 @@ private fun Ringing(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(28.dp))
-        // The same ultra-condensed face the grid uses, at the size a room-across glance needs.
         Numerals(
             text = formattedTime,
             capHeight = 132.dp,

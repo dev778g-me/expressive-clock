@@ -74,7 +74,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.expressiveclock.overlay.OverlayAccessibilityService
 import app.expressiveclock.ui.screens.settings.joinedBlockShape
 
-
 /**
  * Dedicated first-launch setup screen for Expressive Clock permissions.
  */
@@ -97,7 +96,6 @@ fun OnboardingScreen(
         isAccessibilityGranted = checkAccessibilityGranted(context)
     }
 
-    // Auto-refresh permission statuses whenever returning to app from Android Settings
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -110,7 +108,6 @@ fun OnboardingScreen(
         }
     }
 
-    // POST_NOTIFICATIONS runtime permission launcher (API 33+)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) {
@@ -128,7 +125,6 @@ fun OnboardingScreen(
     ) {
         Spacer(Modifier.height(28.dp))
 
-        // Title
         Text(
             text = "Welcome to\nExpressive Clock",
             style = MaterialTheme.typography.displaySmall.copy(
@@ -141,7 +137,6 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        // Subtitle
         Text(
             text = "A few quick permissions will make sure alarms, timers and the Dynamic Island work reliably, even when the app is closed.",
             style = MaterialTheme.typography.bodyLarge.copy(
@@ -153,7 +148,6 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        // Card 1: Notifications
         OnboardingSetupCard(
             title = "Notifications",
             description = "Allows Expressive Clock to show Alarm, Timer and Stopwatch notifications, including when the app is closed.",
@@ -181,7 +175,6 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(2.dp))
 
-        // Card 2: Full-screen alarms
         OnboardingSetupCard(
             title = "Full-screen alarms",
             description = "Allows ringing alarms to display full-screen over your lock screen. If unavailable, alarms will display as high-priority heads-up notifications with dismiss and snooze controls.",
@@ -214,7 +207,6 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(2.dp))
 
-        // Card 3: Background operation
         OnboardingSetupCard(
             title = "Background operation",
             description = "Prevent Android from restricting Expressive Clock so your alarms, timers and stopwatch keep running reliably.",
@@ -240,7 +232,6 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(2.dp))
 
-        // Card 4: Accessibility (optional)
         OnboardingSetupCard(
             title = "Accessibility (optional)",
             description = "Enable the Dynamic Island to show active timers and stopwatch controls over other apps, with interactive controls (e.g. pause, lap, dismiss). No personal data or screen content is read or collected.",
@@ -265,7 +256,6 @@ fun OnboardingScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        // Main Continue Primary Button
         Button(
             onClick = onComplete,
             modifier = Modifier
@@ -284,8 +274,6 @@ fun OnboardingScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-
-        // Subdued Set up later Button
 
         TextButton(
             modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -334,7 +322,6 @@ private fun OnboardingSetupCard(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Scalloped Icon Container
             Box(
                 modifier = Modifier
                     .size(54.dp)
@@ -368,7 +355,6 @@ private fun OnboardingSetupCard(
                         modifier = Modifier.weight(1f, fill = false),
                     )
 
-                    // Set up / Already granted Button
                     Button(
                         onClick = onSetup,
                         enabled = !isGranted,
@@ -465,9 +451,6 @@ private fun launchIntent(context: Context, intent: Intent, fallbackProvider: (()
         val resolved = intent.resolveActivity(pm)
         Log.d("ExpressiveClock.BatteryOptimization", "launchIntent: intent.resolveActivity = $resolved")
 
-        // Crucial: Do NOT add FLAG_ACTIVITY_NEW_TASK when launched from an Activity context!
-        // Adding FLAG_ACTIVITY_NEW_TASK causes Android to create a new Settings Task window behind the dialog.
-        // Launching directly from an Activity context renders the battery optimization confirmation as a true dialog overlay!
         if (activity != null) {
             activity.startActivity(intent)
         } else {

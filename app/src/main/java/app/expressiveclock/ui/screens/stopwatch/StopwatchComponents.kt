@@ -93,18 +93,6 @@ import app.expressiveclock.core.stopwatchParts
 import app.expressiveclock.ui.responsive.LocalAppWindowSizeInfo
 import app.expressiveclock.ui.responsive.TwoPaneLayout
 
-/**
- * The stopwatch.
- *
- * Extrapolated: the concept set contains no stopwatch at all, so this reuses the timer's own
- * vocabulary (the stacked hollow digits, the wide pills) rather than importing a different look.
- * The bottom pair of digits is hundredths, which is why the whole screen is driven off a
- * frame-paced ticker instead of a one-second one.
- *
- * The fastest and slowest laps are marked in tertiary and error. That is not in the renders; it is
- * the one addition, on the grounds that a lap list nobody can compare is just a receipt.
- */
-
 /** The dial and controls stay fixed; only the right-hand lap viewport scrolls. */
 @Composable
 internal fun ExpandedStopwatch(
@@ -119,7 +107,6 @@ internal fun ExpandedStopwatch(
 ) {
     val idle = !stopwatch.running && elapsedMillis == 0L && stopwatch.laps.isEmpty()
     val lapList = rememberLazyListState()
-    // Arm only while empty; restored laps and later insertions keep their existing motion.
     val firstLapEntrance = remember { Animatable(if (stopwatch.laps.isEmpty()) 0f else 1f) }
     LaunchedEffect(stopwatch.laps.isEmpty()) {
         if (stopwatch.laps.isEmpty()) {
@@ -166,7 +153,6 @@ internal fun ExpandedStopwatch(
             ) {
                 val diameter = minOf(maxWidth, maxHeight).coerceAtLeast(1.dp)
                 val scale = diameter / STOPWATCH_FACE_SIZE
-                // Scale the original face as a unit, including its typography and hit target.
                 Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
                     Box(
                         Modifier.requiredSize(STOPWATCH_FACE_SIZE).graphicsLayer {
@@ -184,7 +170,6 @@ internal fun ExpandedStopwatch(
                 Modifier.fillMaxSize().padding(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                // Leave a lap viewport even in a short unfolded window; normal windows use 56dp.
                 val buttonHeight = ((maxHeight - 48.dp) / 3 - 8.dp).coerceIn(28.dp, 56.dp)
                 if (!idle || controlsExpansion > .001f) {
                     Column(
@@ -303,7 +288,6 @@ internal fun ExpandedStopwatchControls(
                 val targetY = (index + 1) * (activeHeight + gap)
                 button.placeRelative(x, (restingY + (targetY - restingY) * expansion).roundToInt())
             }
-            // Keep the primary pill above its merging siblings throughout Start and Reset.
             main.placeRelative(x, (restingY * (1f - expansion)).roundToInt())
         }
     }
@@ -318,7 +302,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
     val primary = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
 
-    // Fluid hand rotation with smooth reset animation
     val currentTurnFraction = ((safeMillis % 60000L) / 60000f)
     val handTurnAnim = remember { Animatable(currentTurnFraction) }
 
@@ -326,7 +309,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
         if (running || safeMillis > 0L) {
             handTurnAnim.snapTo(currentTurnFraction)
         } else {
-            // Reset: continuous 2-phase angular return with natural overshoot & settling at 12 o'clock
             val start = (handTurnAnim.value % 1f + 1f) % 1f
             if (start > 0.001f && start < 0.999f) {
                 val (overshootTarget, finalTarget) = if (start <= 0.5f) {
@@ -336,7 +318,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
                 }
                 handTurnAnim.snapTo(start)
 
-                // Phase 1: Smooth return and controlled overshoot past 12 o'clock
                 handTurnAnim.animateTo(
                     targetValue = overshootTarget,
                     animationSpec = tween(
@@ -345,7 +326,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
                     ),
                 )
 
-                // Phase 2: Gentle, smooth return from overshoot to exact 12 o'clock
                 handTurnAnim.animateTo(
                     targetValue = finalTarget,
                     animationSpec = tween(
@@ -381,7 +361,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = size.minDimension / 2f
 
-            // A restrained 60-mark track, with the quarter marks slightly heavier.
             for (i in 0 until 60) {
                 val angle = i / 60f * (2f * Math.PI.toFloat()) - Math.PI.toFloat() / 2f
                 val outer = radius - if (i % 5 == 0) 5.dp.toPx() else 2.dp.toPx()
@@ -401,7 +380,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
             val handAngle = secondAngle - Math.PI.toFloat() / 2f
             val tip = Offset(center.x + kotlin.math.cos(handAngle) * handLength, center.y + kotlin.math.sin(handAngle) * handLength)
 
-            // Radial gradient so the hand fades out underneath the central readout text
             val innerCutoff = 72.dp.toPx()
             val fadeRange = 20.dp.toPx()
             val handBrush = Brush.radialGradient(
@@ -454,29 +432,6 @@ internal fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () -
 
 internal val STOPWATCH_FACE_SIZE = 410.dp
 
-/**
- * The controls: **one row, one height, two states, and a morph between them.**
- *
- * Untouched, the screen offers only Start. Lap and Reset have nothing to act on yet, and a live
- * control that does nothing is worse than an absent one. It is sized to its own label, because a
- * lone button that spans the screen claims an importance the row does not have once it splits.
- *
- * Pressing it runs two phases, in order, and the order is the effect:
- *
- *  1. **Expand.** The pill grows from its content width to the full row on the expressive spatial
- *     spring. Its shape is already fully round, so growing the width *is* the morph; a small pill
- *     becomes a wide one with no corner interpolation to get wrong.
- *  2. **Split.** Only once it has arrived does the three-button row cross-fade in, with its 6 dp
- *     gaps opening from nothing. So the wide pill is seen to divide rather than to be replaced.
- *
- * The delay on phase 2 is what sequences them; running both on one curve reads as a dissolve.
- *
- * Both states are exactly [ROW_HEIGHT], and that is the whole point. An earlier version graded the
- * button heights down as laps accumulated to buy list space, which worked and looked wrong: the
- * controls twitched under the thumb on every lap press, and the band left for laps changed four
- * times. Fixing the height instead means nothing below the readout ever moves, and it makes the lap
- * band a constant, the same on a fresh screen as on a full one.
- */
 @Composable
 internal fun StopwatchButton(
     text: String,
@@ -552,26 +507,16 @@ internal fun StopwatchControls(
     val lapInteraction = remember { MutableInteractionSource() }
     val resetInteraction = remember { MutableInteractionSource() }
     val expanded = !idle
-    // The *effects* spring, not the spatial one, and not by accident. Material's fast spatial
-    // spring is under-damped (0.6/800), which means it takes about 240 ms and rings past its
-    // target. Both properties are wrong here: the split is timed to land the moment the pill
-    // arrives, so the pill has to actually arrive rather than wobble around full width.
-    // `fastEffectsSpec` is critically damped and settles in well under half the time.
     val expand by animateFloatAsState(
         targetValue = if (expanded) 1f else 0f,
         animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
         label = "expand",
     )
-    // The label goes almost at once. A word sliding along inside a container that is still growing
-    // reads as a glitch, so it is gone before the eye can follow it. The container it leaves
-    // behind is what the three buttons then divide.
     val label by animateFloatAsState(
         targetValue = if (expanded) 0f else 1f,
         animationSpec = tween(durationMillis = LABEL_FADE_MS),
         label = "label",
     )
-    // Deliberately not a spring: this one has to *wait*, and a delay is a tween's parameter. It
-    // only waits on the way out, since collapsing back to Start should not stall on an empty row.
     val split by animateFloatAsState(
         targetValue = if (expanded) 1f else 0f,
         animationSpec = tween(
@@ -580,11 +525,7 @@ internal fun StopwatchControls(
         ),
         label = "split",
     )
-    // The spring overshoots past 1 on the way in, which is wanted for the width but would push the
-    // interpolation out of range.
     val e = expand.coerceIn(0f, 1f)
-
-
 
     SubcomposeLayout(
         Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(horizontal = 20.dp),
@@ -592,10 +533,6 @@ internal fun StopwatchControls(
         val full = constraints.maxWidth
         val h = ROW_HEIGHT.roundToPx()
 
-        // The resting width is **one readout row**: the `: ss` line directly above it, colon cell
-        // and both digits. Measured off the real composable rather than added up from the cell
-        // constant and a guess at the digit advance, so the two stay locked together if the cap
-        // height or the width axis ever changes.
         val inset = ROW_INK_INSET.roundToPx()
         val rowWidth = subcompose("rowProbe") {
             DigitRow(
@@ -606,9 +543,6 @@ internal fun StopwatchControls(
             )
         }.first().measure(Constraints()).width
 
-        // …but never narrower than the label needs. The two figures are within a few dp of each
-        // other today; if a translation ever made "Start" the longer of the two, clipping the word
-        // would be the worse failure.
         val natural = subcompose("probe") {
             StopwatchButton(
                 text = "Start",
@@ -631,10 +565,6 @@ internal fun StopwatchControls(
         val single = if (split < 1f) {
             subcompose("single") {
                 Box(Modifier.graphicsLayer { alpha = 1f - split }) {
-                    // Always the *idle* button, never "Stop". `running` has already flipped by the
-                    // time this frame draws, and relabelling the pill at the instant of the tap
-                    // makes the thing that grows a different button from the one that was pressed.
-                    // The new labels belong to the split, which is what the split is for.
                     StopwatchButton(
                         text = "Start",
                         icon = Icons.Rounded.PlayArrow,
@@ -764,12 +694,6 @@ internal val READOUT_CAP = 66.dp
 internal val GAP = 6.dp
 internal val ROW_HEIGHT = 64.dp
 
-/**
- * Lap rows are deliberately shorter than a list item usually is. Every dp here buys list, and the
- * row carries three short strings (an index badge, a split and a total), none of which needs the
- * height a two-line item would. At [LAP_ROW_HEIGHT] plus [LAP_GAP] a lap costs 52 dp, so the
- * four-lap control layout shows three of them where the old 124 dp cap showed one.
- */
 internal val LAP_ROW_HEIGHT = 48.dp
 internal val LAP_GAP = 4.dp
 

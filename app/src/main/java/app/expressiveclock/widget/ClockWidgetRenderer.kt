@@ -26,15 +26,6 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/**
- * Builds and pushes the widget.
- *
- * The one thing worth knowing here: the payload goes over binder as **compressed bytes wrapped in
- * an `Icon`**, never as a `Bitmap`. `RemoteViews.estimateMemoryUsage()` counts only its bitmap
- * cache, which `setImageViewBitmap` fills and `setIcon` does not, so icons stay outside the
- * system's per-widget bitmap ceiling. A lossless WEBP of a flat-coloured dial is also one to two
- * orders of magnitude smaller than the raw ARGB it replaces.
- */
 object ClockWidgetRenderer {
 
     suspend fun update(context: Context, manager: AppWidgetManager, appWidgetId: Int) {
@@ -51,18 +42,6 @@ object ClockWidgetRenderer {
         manager.updateAppWidget(appWidgetId, views)
     }
 
-    /**
-     * One `RemoteViews` per candidate size.
-     *
-     * From API 31 the host hands us the exact sizes it will use and picks between them itself, with
-     * no round trip on rotation. Below that the portrait box is min-width × max-height and the
-     * landscape box is max-width × min-height, combined with the old two-layout constructor. An
-     * empty list, which the docs say is the launcher's prerogative, takes the same path.
-     *
-     * Every dp in that bundle is already padding-corrected by `AppWidgetHostView`, so it is the
-     * content box: adding padding of our own would shrink the face away from the edges, which is
-     * the one thing the shape fitting exists to prevent.
-     */
     private fun build(
         context: Context,
         config: WidgetConfig,
@@ -110,12 +89,8 @@ object ClockWidgetRenderer {
 
         views.setImageViewIcon(R.id.face, face.bitmap.toIcon())
 
-        // The dial itself is empty: the face underneath is what the user sees, and AnalogClock
-        // would otherwise draw its own default clock face over it.
         views.setIcon(R.id.hands, "setDial", HandRenderer.blank().toIcon())
 
-        // The pin rides the topmost hand that is switched on, because nothing of ours can be drawn
-        // above AnalogClock's own painting order.
         val topmost = when {
             config.secondHand != HandStyle.OFF -> 2
             config.minuteHand != HandStyle.OFF -> 1
@@ -140,9 +115,6 @@ object ClockWidgetRenderer {
             ).toIcon(),
         )
         if (config.secondHand == HandStyle.OFF) {
-            // Null is legal only for the second hand, and it is also what stops the host's 1 Hz
-            // tick, which is the point. The hour and minute hands must be transparent icons
-            // instead, because AnalogClock dereferences those without a null check.
             views.setIcon(R.id.hands, "setSecondHand", null)
         } else {
             views.setIcon(
@@ -191,8 +163,6 @@ object ClockWidgetRenderer {
             DateMode.NONE -> "d"
         }
         val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton)
-        // Both, with the same pattern: a date has no 12/24-hour form, and leaving one unset makes
-        // the view fall back to its own default on devices set the other way.
         views.setCharSequence(R.id.date, "setFormat12Hour", pattern)
         views.setCharSequence(R.id.date, "setFormat24Hour", pattern)
         views.setTextColor(R.id.date, colours.minor)
@@ -200,8 +170,6 @@ object ClockWidgetRenderer {
         val sizePx = 0.14f * face.rMin
         views.setTextViewTextSize(R.id.date, TypedValue.COMPLEX_UNIT_PX, sizePx)
 
-        // Placed with padding rather than margins: setViewLayoutMargin is API 31 and this app
-        // supports 26.
         val angle = when (config.datePosition) {
             DatePosition.THREE -> 90f
             DatePosition.FOUR_THIRTY -> 135f
@@ -222,13 +190,6 @@ object ClockWidgetRenderer {
         )
     }
 
-    /**
-     * Lossless WEBP, wrapped as data rather than as a bitmap.
-     *
-     * `Icon.createWithData` keeps the payload out of `RemoteViews`' bitmap cache, which is what the
-     * system's per-widget memory ceiling actually measures, and compresses a flat dial by one to
-     * two orders of magnitude before it crosses binder.
-     */
     private fun Bitmap.toIcon(): Icon {
         val out = ByteArrayOutputStream(BUFFER)
         val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

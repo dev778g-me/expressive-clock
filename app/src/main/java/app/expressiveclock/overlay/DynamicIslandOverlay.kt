@@ -98,13 +98,6 @@ import kotlin.math.roundToInt
 
 private enum class IslandState { HIDDEN, COLLAPSED, EXPANDED }
 
-/**
- * Dynamic Island-style overlay container and morphing UI for active Timers and Stopwatches.
- * Positioned around the status bar and camera cutout.
- *
- * Architecture reference: SmartIsland (GPL-3.0 by agupta07505).
- * Unified 3-state updateTransition machine driving geometry springs and content layers.
- */
 @Composable
 fun DynamicIslandOverlayContent(
     timer: ClockTimer?,
@@ -148,7 +141,6 @@ fun DynamicIslandOverlayContent(
         else -> IslandState.COLLAPSED
     }
 
-    // Dedicated Animatable for normal exit presence animation
     val exitProgress = remember { Animatable(1f) }
 
     LaunchedEffect(exitRequestId) {
@@ -164,10 +156,8 @@ fun DynamicIslandOverlayContent(
         onExitComplete()
     }
 
-    // Unified updateTransition state machine for normal states (HIDDEN, COLLAPSED, EXPANDED)
     val transition = updateTransition(targetState = targetIslandState, label = "SmartIslandTransition")
 
-    // Logcat verification for entrance presence transition
     LaunchedEffect(transition.targetState) {
         if (transition.targetState == IslandState.COLLAPSED && transition.currentState == IslandState.HIDDEN) {
             Log.d("DynamicIslandOverlay", "DynamicIsland: APPEARING START")
@@ -192,7 +182,6 @@ fun DynamicIslandOverlayContent(
     val collapsedWidth = (96.dp + cutoutWidthDp + widthOffsetDp).coerceIn(80.dp, 280.dp)
     val collapsedHeight = (38.dp + heightOffsetDp).coerceIn(24.dp, 60.dp)
 
-    // Synchronized geometry spring spec (stiffness = 520f, dampingRatio = 0.72f)
     val geometrySpringDp = spring<Dp>(
         stiffness = 520f,
         dampingRatio = 0.72f,
@@ -200,7 +189,6 @@ fun DynamicIslandOverlayContent(
 
     val cameraCutoutDiameter = cutoutWidthDp.coerceAtLeast(36.dp)
 
-    // Master presence progress for shape convergence guard
     val transitionPresenceProgress by transition.animateFloat(
         label = "presenceProgress",
         transitionSpec = { spring(stiffness = 520f, dampingRatio = 0.72f) },
@@ -247,32 +235,26 @@ fun DynamicIslandOverlayContent(
         }
     }
 
-    // Direct geometry mapping: Pill contracts smoothly to 1dp circle
     val clampedProgress = presenceProgress.coerceIn(0f, 1f)
     val effectiveWidth: Dp
     val effectiveHeight: Dp
     val effectiveCornerRadius: Dp
 
     if (!isExiting && (transition.currentState == IslandState.EXPANDED || transition.targetState == IslandState.EXPANDED)) {
-        // Collapsed <-> Expanded morph
         effectiveWidth = visualWidth
         effectiveHeight = visualHeight
         effectiveCornerRadius = currentCornerRadius
     } else {
-        // Proportional contraction towards 1dp circle
         val endpointDiameter = 1.dp
         effectiveWidth = lerp(endpointDiameter, collapsedWidth, clampedProgress)
         effectiveHeight = lerp(endpointDiameter, collapsedHeight, clampedProgress)
         effectiveCornerRadius = lerp(0.5.dp, collapsedHeight / 2f, clampedProgress)
     }
 
-    // Optional final pill surface fade over the final ~6dp endpoint
     val currentAlpha = (effectiveWidth / 6.dp).coerceIn(0f, 1f)
 
-    // Inner content fast fade for pill contraction towards 1dp (~133ms / 0.35 progress fraction)
     val fastContentAlpha = ((clampedProgress - 0.65f) / 0.35f).coerceIn(0f, 1f)
 
-    // Layer 2: Collapsed Content Fade & Blur (8 frames / 133ms duration)
     val transitionCollapsedAlpha by transition.animateFloat(
         label = "collapsedAlpha",
         transitionSpec = {
@@ -315,7 +297,6 @@ fun DynamicIslandOverlayContent(
         transitionCollapsedAlpha * fastContentAlpha
     }
 
-    // Layer 3: Incoming Expanded Content Fade & Blur (8 frames / 133ms duration)
     val expandedAlpha by transition.animateFloat(
         label = "expandedAlpha",
         transitionSpec = {
@@ -355,7 +336,6 @@ fun DynamicIslandOverlayContent(
     val effectiveHeightPx = with(density) { effectiveHeight.toPx() }
     val effectiveCornerRadiusPx = with(density) { effectiveCornerRadius.toPx() }
 
-    // Outer root container
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -363,7 +343,6 @@ fun DynamicIslandOverlayContent(
                 if (isExpanded && !isCalibrationPreview) {
                     Modifier.pointerInput(Unit) {
                         detectTapGestures {
-                            // Tap outside expanded card collapses back to capsule
                             onExpandChanged(false)
                         }
                     }
@@ -371,7 +350,6 @@ fun DynamicIslandOverlayContent(
             ),
         contentAlignment = Alignment.TopCenter,
     ) {
-        // Layer A: Full-screen Canvas drawing the single black surface
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -379,7 +357,6 @@ fun DynamicIslandOverlayContent(
                     this.alpha = currentAlpha
                 },
         ) {
-            // Exact positioning: top-aligned for Collapsed <-> Expanded morph, center-anchored for contraction
             val screenCenterX = size.width / 2f
             val islandLeftPx = screenCenterX + offsetXPx - (effectiveWidthPx / 2f)
             val islandTopPx = if (!isExiting && (transition.currentState == IslandState.EXPANDED || transition.targetState == IslandState.EXPANDED)) {
@@ -396,7 +373,6 @@ fun DynamicIslandOverlayContent(
             )
         }
 
-        // Layer B: Content Box positioned over the drawn black island surface
         Box(
             modifier = Modifier
                 .padding(top = topInsetDp)
@@ -421,7 +397,6 @@ fun DynamicIslandOverlayContent(
                     interactionSource = remember { MutableInteractionSource() },
                 ) {
                     if (isExpanded) {
-                        // Tapping the main black island surface opens the Clock app to the active tab
                         openAppTab(if (isTimerActive) Notifications.TAB_TIMERS else Notifications.TAB_STOPWATCH)
                     } else if (!isExiting) {
                         onExpandChanged(true)
@@ -436,7 +411,6 @@ fun DynamicIslandOverlayContent(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Layer 2: Collapsed Content (Fixed unpadded bounds: never squished or clipped during expansion)
                     if (collapsedAlpha > 0.01f) {
                         Box(
                             modifier = Modifier
@@ -456,7 +430,6 @@ fun DynamicIslandOverlayContent(
                         }
                     }
 
-                    // Layer 3: Expanded Content (Fixed expanded bounds: controls never shift horizontally during contraction)
                     if (expandedAlpha > 0.01f) {
                         Box(
                             modifier = Modifier
@@ -496,7 +469,6 @@ private fun CalibrationTargetCapsule(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        // Outer faded ring/circle (matches MT Capsule calibration visual reference)
         Box(
             modifier = Modifier
                 .size(32.dp)
@@ -505,7 +477,6 @@ private fun CalibrationTargetCapsule(
                 .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            // Bright red inner target circle with white border stroke
             Box(
                 modifier = Modifier
                     .size(20.dp)
@@ -623,7 +594,6 @@ private fun CollapsedIslandCapsule(
     ) {
         if (isTimer && timer != null) {
             val remaining = timer.remaining(nowElapsed)
-            // Left side: Icon anchored 6dp from left inner edge
             Icon(
                 Icons.Outlined.HourglassEmpty,
                 contentDescription = null,
@@ -637,7 +607,6 @@ private fun CollapsedIslandCapsule(
                     },
             )
 
-            // Right side: Compact ticker text anchored 6dp from right inner edge
             CompactTickerText(
                 valueString = formatCompactDuration(remaining),
                 fontFamily = compactFontFamily,
@@ -647,7 +616,6 @@ private fun CollapsedIslandCapsule(
             )
         } else if (stopwatch != null) {
             val elapsed = stopwatch.elapsed(nowElapsed)
-            // Left side: Icon anchored 6dp from left inner edge
             Icon(
                 Icons.Outlined.Timer,
                 contentDescription = null,
@@ -661,7 +629,6 @@ private fun CollapsedIslandCapsule(
                     },
             )
 
-            // Right side: Compact ticker text anchored 6dp from right inner edge
             CompactTickerText(
                 valueString = formatCompactDuration(elapsed),
                 fontFamily = compactFontFamily,
@@ -743,7 +710,6 @@ private fun ExpandedIslandCard(
             .fillMaxSize()
             .clickable(onClick = if (isTimer) onOpenTimerTab else onOpenStopwatchTab),
     ) {
-        // Left side: Giant readout and "Time remaining" / "Elapsed time" label below
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -768,7 +734,6 @@ private fun ExpandedIslandCard(
             )
         }
 
-        // Right side: Three expressive scalloped buttons
         Row(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -778,7 +743,6 @@ private fun ExpandedIslandCard(
         ) {
             if (isTimer && timer != null) {
                 val running = timer.state == TimerState.RUNNING
-                // Button 1: Pause / Resume
                 ExpressiveButton(
                     containerColor = Color(0xFF2C3242),
                     onClick = onPauseResumeTimer,
@@ -790,7 +754,6 @@ private fun ExpandedIslandCard(
                         modifier = Modifier.size(28.dp),
                     )
                 }
-                // Button 2: +1m
                 ExpressiveButton(
                     containerColor = Color(0xFFD6E2FF),
                     onClick = onAddTenTimer,
@@ -804,7 +767,6 @@ private fun ExpandedIslandCard(
                         color = Color(0xFF0F1A2D),
                     )
                 }
-                // Button 3: Cancel
                 ExpressiveButton(
                     containerColor = Color(0xFF5B2B31),
                     onClick = onCancelTimer,
@@ -818,7 +780,6 @@ private fun ExpandedIslandCard(
                 }
             } else if (stopwatch != null) {
                 val running = stopwatch.running
-                // Button 1: Pause / Resume
                 ExpressiveButton(
                     containerColor = Color(0xFF2C3242),
                     onClick = onToggleStopwatch,
@@ -830,7 +791,6 @@ private fun ExpandedIslandCard(
                         modifier = Modifier.size(28.dp),
                     )
                 }
-                // Button 2: Lap
                 ExpressiveButton(
                     containerColor = Color(0xFFD6E2FF),
                     onClick = onLapStopwatch,
@@ -842,7 +802,6 @@ private fun ExpandedIslandCard(
                         modifier = Modifier.size(28.dp),
                     )
                 }
-                // Button 3: Cancel
                 ExpressiveButton(
                     containerColor = Color(0xFF5B2B31),
                     onClick = onCancelTimer,

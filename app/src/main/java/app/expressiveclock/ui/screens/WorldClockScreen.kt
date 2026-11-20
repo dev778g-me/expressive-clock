@@ -63,18 +63,6 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * The world clock.
- *
- * Its hero is the concept's own idea and, as far as I can find, unique to it: **one dial with a
- * hand per city**, each hand tipped with a capsule carrying that city's name. Where every other
- * world clock makes you read six rows to answer "who is awake", this answers it as a shape. The
- * cities clustered near the bottom of the dial are the ones in the small hours.
- *
- * Its honest failure mode is on screen too: two cities on the same offset put their capsules in
- * exactly the same place. London and Algiers do it for most of the year. The dial draws them in
- * order and the list underneath is the fallback, which is why the list is not optional.
- */
 private const val ROW_HEIGHT_DP = 128
 
 @Composable
@@ -105,8 +93,6 @@ fun WorldClockScreen(
                 measurer = measurer,
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Not a full-width circle: at 130 dp per row a 372 dp dial leaves room for
-                    // barely one city, and the list is the dial's fallback for colliding offsets.
                     .padding(start = 54.dp, end = 54.dp, top = 4.dp, bottom = 18.dp)
                     .aspectRatio(1f),
             )
@@ -148,7 +134,6 @@ private fun CityDial(
         val c = Offset(size.width / 2f, size.height / 2f)
         drawCircle(face, radius = r, center = c)
 
-        // 12 / 3 / 6 / 9 set large and ghosted; the rest are dots. Straight from the render.
         for (i in 0 until 12) {
             val a = (i / 12f) * 2f * PI.toFloat() - PI.toFloat() / 2f
             val p = Offset(c.x + cos(a) * (r - 44.dp.toPx()), c.y + sin(a) * (r - 44.dp.toPx()))
@@ -175,8 +160,6 @@ private fun CityDial(
             val padH = 7.dp.toPx()
             val w = m.size.width + padH * 2
             val h = m.size.height + 5.dp.toPx()
-            // Flip through 180° in the lower half so a name is never upside down, which is what
-            // the render does: its upper-left hands read normally rather than mirrored.
             val flip = if (angle.mod(360f) in 90f..270f) 180f else 0f
             rotate(degrees = angle + flip, pivot = tip) {
                 drawRoundRect(
@@ -195,29 +178,6 @@ private fun CityDial(
     }
 }
 
-/**
- * A city row.
- *
- * Measured, and much larger than a list item: **128 dp tall on a 2 dp gap**, so the pitch is 130.
- * The right end is a true semicircle (the corner radius is exactly half the row height), not a
- * 24-28 dp rounded corner. Two earlier passes had these at 56 and then 88 dp, and both read as an
- * ordinary list; at 128 the time can be set at display size, which is the point. The time is the
- * content and the city is its label, not the other way round.
- */
-/**
- * A city, removable by swiping it away to the left.
- *
- * `SwipeToDismissBox` is the component for this, and the spec's rule for a swipeable container is
- * "one swipe action", which is why only end-to-start is enabled and start-to-end is off, rather
- * than offering two directions that do the same thing. The revealed layer is the error container
- * with a trailing bin, which is the standard destructive treatment and reads before the row has
- * travelled far enough to commit.
- *
- * It replaces a long-press and a confirmation dialog. The dialog was defensible while the gesture
- * was invisible; with a swipe, the gesture is deliberate enough to stand on its own, and the safety
- * net moves to an Undo snackbar. That is both the documented mitigation and less work to use than a
- * dialog you have to answer every time.
- */
 @OptIn(ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun CityRow(
@@ -241,14 +201,6 @@ private fun CityRow(
         if (!use24h) append(if (local.hour < 12) "am" else "pm")
     }
 
-    // A plain `remember`, not `rememberSwipeToDismissBoxState`.
-    //
-    // That helper is *saveable* and LazyColumn restores saved state per item key, so a city that
-    // is swiped away and then comes back, whether by Undo or by adding it again, lands on its old
-    // saved `EndToStart` value. `SwipeToDismissBox` then sees a box that is already dismissed and
-    // fires `onDismiss` on its first composition, deleting the row the instant it returns. The
-    // symptom is baffling from the outside: the store logs the city restored and the screen stays
-    // empty. Swipe offset is transient gesture state and has no business outliving the row.
     val state = remember(city.zone.id) {
         SwipeToDismissBoxState(
             initialValue = SwipeToDismissBoxValue.Settled,
@@ -258,8 +210,6 @@ private fun CityRow(
     SwipeToDismissBox(
         state = state,
         modifier = modifier,
-        // One swipe action per container, per the spec. Two directions doing the same thing is not
-        // twice the affordance, it is a coin flip about whether the row came back.
         enableDismissFromStartToEnd = false,
         onDismiss = { onRemove() },
         backgroundContent = {
@@ -297,8 +247,6 @@ private fun CityRow(
                 .padding(horizontal = 16.dp)
                 .height(ROW_HEIGHT_DP.dp)
                 .semantics {
-                    // A swipe is a gesture, and a gesture is invisible to a screen reader. The same
-                    // action has to exist as a verb it can announce and perform.
                     customActions = listOf(
                         CustomAccessibilityAction("Remove ${city.city}") { onRemove(); true }
                     )
@@ -308,8 +256,6 @@ private fun CityRow(
             modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Day or night, not an initial. The initial says nothing you cannot read in the name
-            // beside it; whether they are awake is the only thing a world clock is actually for.
             Surface(
                 color = if (night) {
                     MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.70f)
@@ -355,7 +301,6 @@ private fun CityRow(
             Text(
                 clock,
                 style = if (showSeconds) {
-                    // Seconds add three glyphs to a row that was already tight at four.
                     MaterialTheme.typography.titleLargeEmphasized
                 } else {
                     MaterialTheme.typography.headlineMediumEmphasized

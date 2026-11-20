@@ -6,14 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 
-/**
- * Ways to reach a widget that do not depend on the launcher offering them.
- *
- * `android:widgetFeatures="reconfigurable"` is documented as *"hints to the widget host, and do not
- * actually change the behavior of the widget"*, and in practice several shipping launchers have
- * never surfaced a reconfigure affordance at all. So the app carries its own list, and a placed
- * widget can always be edited from inside Settings even where the home screen offers no way in.
- */
 object WidgetEntryPoints {
 
     /** Open the editor for an already-placed widget. The ignored result is harmless: the activity
@@ -31,13 +23,6 @@ object WidgetEntryPoints {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported
 
-    /**
-     * Ask the launcher to place one.
-     *
-     * Most hosts do **not** run the configure activity for a pinned widget (they just drop it), so
-     * the success callback opens the editor itself. The callback carries the new
-     * `EXTRA_APPWIDGET_ID`, which is the only place that id is ever offered to us.
-     */
     fun requestPin(context: Context, isDigital: Boolean = false) {
         if (!canPin(context)) return
         val callback = PendingIntent.getBroadcast(

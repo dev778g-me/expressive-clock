@@ -41,11 +41,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 
-/**
- * Fixed-stage dock. The add button never changes the measured width of the stage, so moving from
- * Alarms to another tab cannot make the dock jump/stutter. Instead the dock and add button animate
- * within the same centered stage.
- */
 @Composable
 fun ClockDock(
     destinations: List<Tab>,

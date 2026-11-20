@@ -5,12 +5,6 @@ import app.expressiveclock.ui.theme.Palette
 import androidx.compose.ui.graphics.Color
 import java.time.DayOfWeek
 
-/**
- * Every preference the app has, in one tree.
- *
- * Grouped by feature, then surfaced from one persistent app-wide settings sheet. This keeps the
- * navigation affordance consistent while leaving room to add more preferences later.
- */
 data class ClockSettings(
     val alarms: AlarmSettings = AlarmSettings(),
     val world: WorldClockSettings = WorldClockSettings(),
@@ -59,11 +53,6 @@ const val FACTORY_OVERLAY_WIDTH_OFFSET = -43
 const val FACTORY_OVERLAY_HEIGHT_OFFSET = 1
 
 data class ThemeSettings(
-    /**
-     * Wallpaper colour is the default, per the platform's own guidance: a clock is a background
-     * app and should look like it belongs to the phone rather than to itself. [palette] is what it
-     * falls back to when dynamic colour is off, or unavailable below API 31.
-     */
     val dynamicColor: Boolean = true,
     val palette: Palette = Palette.CONCEPT,
     val darkMode: DarkMode = DarkMode.SYSTEM,
@@ -102,13 +91,6 @@ enum class DefaultStartupPage(val label: String, val tabKey: String) {
     }
 }
 
-/**
- * The seven weekday letters, rotated to start on [start].
- *
- * The alarm tile draws these, so the setting has to reach all the way into the grid rather than
- * only into a picker. An app that starts the week on Monday in the editor and on Sunday in the
- * tile is worse than one that never offered the choice.
- */
 fun WeekStart.order(systemFirstDay: DayOfWeek): List<DayOfWeek> {
     val first = day ?: systemFirstDay
     return (0..6).map { DayOfWeek.of((first.value - 1 + it) % 7 + 1) }

@@ -207,7 +207,6 @@ fun WidgetConfigScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding(),
         ) {
-            // Header Bar with Back arrow, Title, Trash icon
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,7 +226,6 @@ fun WidgetConfigScreen(
                 }
             }
 
-            // Animated Type Segmented Switcher: [ Analog | Digital ]
             val isDigital = config.type == WidgetType.DIGITAL
             val alignmentBias by animateFloatAsState(
                 targetValue = if (isDigital) 1f else -1f,
@@ -244,7 +242,6 @@ fun WidgetConfigScreen(
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .padding(4.dp),
             ) {
-                // Sliding selection pill background
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
@@ -254,7 +251,6 @@ fun WidgetConfigScreen(
                         .background(Color(0xFF2170E8)),
                 )
 
-                // Foreground clickable labels
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -292,7 +288,6 @@ fun WidgetConfigScreen(
                 }
             }
 
-            // Prominent Live Preview Card
             AnimatedContent(
                 targetState = config.type,
                 transitionSpec = {
@@ -308,7 +303,6 @@ fun WidgetConfigScreen(
                 }
             }
 
-            // Customisation Controls Scroll View with top and bottom progressive fade overlays
             Box(modifier = Modifier.weight(1f)) {
                 Column(
                     modifier = Modifier
@@ -332,7 +326,6 @@ fun WidgetConfigScreen(
                     Spacer(Modifier.height(36.dp))
                 }
 
-                // Top progressive fade overlay
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -348,7 +341,6 @@ fun WidgetConfigScreen(
                         ),
                 )
 
-                // Bottom progressive fade overlay
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -365,7 +357,6 @@ fun WidgetConfigScreen(
                 )
             }
 
-            // Primary Save Pill Button
             Button(
                 onClick = { onSave(config) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2170E8)),
@@ -595,7 +586,6 @@ private fun DigitalControls(
             onChange = { onUpdate(config.copy(showDayOfWeek = it)) },
         )
 
-        // Simple Mode: Unified Colour for all 5 elements
         SectionHeader("Colour")
         ColourSwatchRowWithCustom(
             selectedColor = config.digitalHourColor,
@@ -613,7 +603,6 @@ private fun DigitalControls(
             onOpenCustomPicker = { showCustomColorPickerTarget = "ALL" },
         )
 
-        // Expanding Toggle Button
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -647,7 +636,6 @@ private fun DigitalControls(
             }
         }
 
-        // Inline Expanding Advanced Colours Section
         AnimatedVisibility(
             visible = showAdvancedColors,
             enter = fadeIn(tween(250, easing = FastOutSlowInEasing)) +
@@ -780,7 +768,6 @@ private fun CustomColorPickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Color Preview Box
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -792,7 +779,6 @@ private fun CustomColorPickerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // 2D Saturation / Value Canvas Field
                 val pureHueColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f)))
                 BoxWithConstraints(
                     modifier = Modifier
@@ -817,20 +803,17 @@ private fun CustomColorPickerDialog(
                     val heightPx = constraints.maxHeight.toFloat()
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        // Saturation gradient (white to pure hue)
                         drawRect(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(Color.White, pureHueColor),
                             ),
                         )
-                        // Value gradient (transparent to black)
                         drawRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(Color.Transparent, Color.Black),
                             ),
                         )
 
-                        // Draw handle indicator
                         val handleX = saturation * widthPx
                         val handleY = (1f - value) * heightPx
                         drawCircle(
@@ -850,7 +833,6 @@ private fun CustomColorPickerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // 1D Hue Slider Canvas
                 val rainbowColors = listOf(
                     Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red,
                 )
@@ -894,7 +876,6 @@ private fun CustomColorPickerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Hex Entry Field
                 OutlinedTextField(
                     value = hexInput,
                     onValueChange = { input ->
@@ -960,7 +941,6 @@ private fun ColourSwatchRowWithCustom(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Swatches 1 - 6
         WidgetColorSwatch.entries.forEach { swatch ->
             val selected = selectedColor == swatch.colorArgb
             val swatchColor = Color(swatch.colorArgb)
@@ -990,7 +970,6 @@ private fun ColourSwatchRowWithCustom(
             }
         }
 
-        // Swatch 7: Custom Colour Option with Palette Icon
         Box(
             modifier = Modifier
                 .size(38.dp)
@@ -1295,7 +1274,6 @@ private fun DigitalPreview(
             .clip(RoundedCornerShape(28.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        // Persistent Wallpaper / Gradient Card Background - NEVER flashes white!
         if (wallpaper != null) {
             Image(
                 bitmap = wallpaper,
@@ -1374,7 +1352,6 @@ private fun DigitalPreview(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        // Fixed-height Time Region (Stationary Position)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1441,7 +1418,6 @@ private fun DigitalPreview(
                             }
                         }
 
-                        // Reserved Label Region (Stationary 4-State Crossfade)
                         val labelState = when {
                             config.showDayOfWeek && config.showDate -> DigitalLabelState.BOTH
                             config.showDayOfWeek -> DigitalLabelState.DAY_ONLY
@@ -1547,7 +1523,6 @@ private fun AnalogPreview(
             .clip(RoundedCornerShape(28.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        // Persistent Wallpaper / Gradient Card Background - NEVER flashes white!
         if (wallpaper != null) {
             Image(
                 bitmap = wallpaper,

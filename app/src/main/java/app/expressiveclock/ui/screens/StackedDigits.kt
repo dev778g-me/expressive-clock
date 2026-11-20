@@ -38,25 +38,6 @@ import app.expressiveclock.ui.blueGlow
 import app.expressiveclock.ui.glass
 import app.expressiveclock.ui.theme.Numerals
 
-/**
- * The concept's timer readout: **one pair of digits per line**, right-aligned, with the
- * separators drawn as two large dots rather than set as a colon.
- *
- * Three lines of two digits instead of one line of eight is what lets the numerals be this big.
- * On one line, `00:00:09` across a 412 dp screen caps out around 60 dp of cap height, while
- * stacked it reaches 77 dp. The concept is not being decorative here; the stack is the only way to
- * get a glanceable countdown onto a phone.
- *
- * Measured off the render: the three rows are in exact register, laid out as a **3-cell tabular
- * string** (one separator cell plus two digit cells, cell advance 67.2 dp), and that block is
- * **centred on the screen**, not right-aligned. Row pitch is 115 dp baseline to baseline, an ink
- * gap of 35.2 dp. The separator dots sit in the leading cell on the baseline, 18 dp across with
- * their centres 40.8 dp apart, and row one's pictogram is centred in that same cell.
- *
- * The readout has its own cut of the same family, `wdth` 95 / `wght` 490 with the slashed zero.
- * That cut was measured off the render rather than borrowed from the alarm grid, which is a much
- * narrower and much lighter face and looked nothing like it.
- */
 @Composable
 fun StackedDigits(
     parts: List<String>,
@@ -77,8 +58,6 @@ fun StackedDigits(
                 }
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        // 35.2 dp measured. `Numerals` boxes are ink-tight, so this is the true ink gap with no
-        // ascent padding quietly padding it out.
         verticalArrangement = Arrangement.spacedBy(35.dp),
     ) {
         parts.forEachIndexed { i, part ->
@@ -93,14 +72,6 @@ fun StackedDigits(
     }
 }
 
-/**
- * One line of the readout: a leading cell holding a pictogram, colon dots or nothing, followed by
- * the digit pair.
- *
- * Public because things have to line up with it. The stopwatch's Start button is exactly as wide as
- * a `: ss` row, and the only way to be *exactly* that is to measure this composable rather than to
- * add up a cell constant and a guess at the digit advance.
- */
 @Composable
 fun DigitRow(
     part: String,
@@ -111,7 +82,6 @@ fun DigitRow(
     separator: Boolean = false,
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        // The separator's own tabular cell, the same advance as a digit cell.
         Box(Modifier.width(SEPARATOR_CELL_DP.dp), contentAlignment = Alignment.Center) {
             when {
                 leading != null -> androidx.compose.material3.Icon(
@@ -127,8 +97,6 @@ fun DigitRow(
             text = part,
             capHeight = capHeight,
             color = color,
-            // The concept's Plank cut: 0.66 wide over tall, stroke 0.139 of cap, slashed zero. Not
-            // the alarm grid's condensed face and not its light off-weight.
             width = ClockFace.TIMER_WIDTH,
             weight = ClockFace.TIMER_WEIGHT,
             slashedZero = true,
@@ -140,15 +108,6 @@ fun DigitRow(
 private const val SEPARATOR_CELL_DP = 67.2f
 private val DOT_DIAMETER = 18.dp
 
-/**
- * How far a row's **visible** left edge sits inside its layout box.
- *
- * The separator gets a whole tabular cell of the same advance as a digit, and the colon's dots are
- * centred in it. So the box starts a good deal to the left of any ink, and anything that lines up
- * with the box rather than with the colon comes out looking off-centre even though the number is
- * right. Derived from the two constants above rather than measured off a screenshot, so it cannot
- * drift away from them.
- */
 val ROW_INK_INSET: Dp = (SEPARATOR_CELL_DP.dp - DOT_DIAMETER) / 2
 
 @Composable
@@ -160,13 +119,6 @@ private fun ColonDots(color: Color) {
     }
 }
 
-/**
- * The wide action pill the concept puts under its timer.
- *
- * Measured at **136 dp tall** and fully rounded: an M3 Expressive extra-large button. This is the
- * one control on the screen, so it gets the size that says so. M3E tactic 4, contain for emphasis,
- * in its most literal form. An earlier build had it at 78 dp, which read as an ordinary button.
- */
 /** Measured off the render's Pause button. */
 const val PILL_HEIGHT_DP = 136f
 

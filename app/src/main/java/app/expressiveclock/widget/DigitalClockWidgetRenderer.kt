@@ -94,11 +94,9 @@ object DigitalClockWidgetRenderer {
         val colours = WidgetColours.resolve(context, config, settings)
         val views = RemoteViews(context.packageName, R.layout.widget_digital_clock)
 
-        // Render full pixel-perfect bitmap for Digital Clock
         val bmp = renderDigitalBitmap(context, config, colours, w, h)
         views.setImageViewIcon(R.id.background_shape, bmp.toIcon())
 
-        // Hide all included XML containers to avoid overlaying native TextClock
         listOf(
             R.id.horizontal_flex, R.id.horizontal_serif, R.id.horizontal_monospace,
             R.id.horizontal_cursive, R.id.horizontal_sans, R.id.stacked_flex,
@@ -130,7 +128,6 @@ object DigitalClockWidgetRenderer {
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
 
-        // 1. Draw Background Shape
         if (config.digitalBackground != DigitalBackground.NONE) {
             val rx = (w.coerceAtMost(h) * 0.22f)
             val rect = RectF(4f, 4f, w - 4f, h - 4f)
@@ -150,7 +147,6 @@ object DigitalClockWidgetRenderer {
             }
         }
 
-        // 2. Resolve Typeface & Weight
         val isBold = config.digitalWeight == DigitalTypefaceWeight.BOLD || config.digitalWeight == DigitalTypefaceWeight.MEDIUM
         val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
 

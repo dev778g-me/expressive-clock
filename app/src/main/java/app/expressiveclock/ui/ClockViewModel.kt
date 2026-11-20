@@ -37,14 +37,6 @@ import java.time.Duration
 import java.time.LocalTime
 import java.time.ZoneId
 
-/**
- * A frame-paced clock, for anything that has to look continuous.
- *
- * `withFrameMillis` rather than a fixed `delay`: the stopwatch shows hundredths, and a counter
- * sampled on its own schedule beats against the display's refresh and visibly stutters. Tying the
- * read to Compose's own frame clock gives one sample per drawn frame, which is both the minimum
- * needed and the maximum useful. It also stops on its own when the composition leaves the screen.
- */
 @Composable
 fun rememberElapsedTicker(active: Boolean = true): State<Long> =
     produceState(initialValue = SystemClock.elapsedRealtime(), active) {
@@ -54,13 +46,6 @@ fun rememberElapsedTicker(active: Boolean = true): State<Long> =
         }
     }
 
-/**
- * A wall-clock ticker at [periodMillis].
- *
- * The world clock and the alarm list change once a second at most, and waking every frame to
- * re-derive six time zones would burn battery for nothing. It re-aligns to the second boundary
- * each tick so the displayed seconds turn over when they should rather than drifting.
- */
 @Composable
 fun rememberWallTicker(periodMillis: Long = 1000L): State<Long> =
     produceState(initialValue = System.currentTimeMillis(), periodMillis) {
@@ -71,18 +56,6 @@ fun rememberWallTicker(periodMillis: Long = 1000L): State<Long> =
         }
     }
 
-/**
- * The whole app's state, read from and written to [ClockStore].
- *
- * Nothing is held in memory as the source of truth. Every mutation writes the store and the flows
- * come back around. That is what makes a notification button and an on-screen button the same
- * operation, and what makes the app correct after being killed. The cost is one extra hop per
- * press, which for a clock is free.
- *
- * Scheduling is a *consequence* of a write, not a parallel path: `AlarmScheduler` and
- * `TimerScheduler` are called with the value that was just persisted, so the store and
- * `AlarmManager` cannot disagree.
- */
 class ClockViewModel(app: Application) : AndroidViewModel(app) {
 
     private val store = ClockStore(app)
@@ -119,27 +92,15 @@ class ClockViewModel(app: Application) : AndroidViewModel(app) {
                 _stopwatch.value = sw
             }
         }
-        // The first run has never scheduled anything, and a reinstall wipes AlarmManager. Doing it
-        // on launch is cheap and covers both without a separate first-run flag.
         viewModelScope.launch {
             Notifications.ensureChannels(ctx)
             AlarmScheduler.scheduleAll(ctx, store.alarmsNow())
         }
     }
 
-    /* ── Settings ───────────────────────────────────────────────────────────────────────────── */
-
-    /**
-     * Returns Unit, not the Job, so it can be passed where `((ClockSettings) -> ClockSettings) ->
-     * Unit` is expected. Nothing else has to be notified: silence-after, snooze length and the
-     * timer sound are all read from the store at the moment they are needed, by whichever receiver
-     * or service needs them.
-     */
     fun updateSettings(block: (ClockSettings) -> ClockSettings) {
         viewModelScope.launch { store.update(block) }
     }
-
-    /* ── Alarms ─────────────────────────────────────────────────────────────────────────────── */
 
     fun toggleAlarm(id: Long) = viewModelScope.launch {
         val next = store.alarmsNow().map {
@@ -166,8 +127,6 @@ class ClockViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun deleteAlarm(id: Long) = viewModelScope.launch {
-        // The UI owns the short exit animation now, so the persisted alarm can be removed
-        // immediately. AlarmsScreen retains the card visually until its exit completes.
         AlarmScheduler.cancel(ctx, id)
         store.putAlarms(store.alarmsNow().filterNot { it.id == id })
     }
@@ -176,8 +135,6 @@ class ClockViewModel(app: Application) : AndroidViewModel(app) {
         ids.forEach { id -> AlarmScheduler.cancel(ctx, id) }
         store.putAlarms(store.alarmsNow().filterNot { it.id in ids })
     }
-
-    /* ── World clock ────────────────────────────────────────────────────────────────────────── */
 
     var newlyAddedCity by mutableStateOf<String?>(null)
         private set
@@ -201,13 +158,6 @@ class ClockViewModel(app: Application) : AndroidViewModel(app) {
         store.putCities(store.cities.first().filterNot { it.zone == zone })
     }
 
-    /* ── Timer ──────────────────────────────────────────────────────────────────────────────── */
-
-    /**
-     * Digits fill from the right the way every phone keypad works: "2", "5" reads as 25 seconds,
-     * then a third digit pushes it into minutes. Kept in memory rather than the store, because a
-     * half-typed duration is not state worth surviving a reboot.
-     */
     var timerDigits: String by mutableStateOf("")
         private set
 
@@ -298,8 +248,6 @@ class ClockViewModel(app: Application) : AndroidViewModel(app) {
         TimerScheduler.sync(ctx, null)
     }
 
-    /* ── Stopwatch ──────────────────────────────────────────────────────────────────────────── */
-
     fun toggleStopwatch() {
         val sw = _stopwatch.value
         val now = SystemClock.elapsedRealtime()
@@ -320,7 +268,6 @@ class ClockViewModel(app: Application) : AndroidViewModel(app) {
         if (!sw.running) return
         val total = sw.elapsed(SystemClock.elapsedRealtime())
         val previous = sw.laps.firstOrNull()?.total ?: Duration.ZERO
-        // Newest first: the list is read from the top and the freshest lap is the one you took.
         val next = sw.copy(laps = listOf(Lap(sw.laps.size + 1, total.minus(previous), total)) + sw.laps)
         _stopwatch.value = next
         viewModelScope.launch {

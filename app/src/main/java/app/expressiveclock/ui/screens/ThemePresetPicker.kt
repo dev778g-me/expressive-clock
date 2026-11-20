@@ -51,13 +51,6 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.ktx.toDynamicScheme
 import com.materialkolor.material3.toColorScheme
 
-/**
- * One named look: a seed colour plus the three material-kolor knobs that shape it.
- *
- * A preset is the only way to customise the theme. Selecting one writes all four stored fields in
- * one go, so what the settings show and what the app renders can never drift apart — there is no
- * second "custom" state to reconcile with the scheme actually on screen.
- */
 @Immutable
 data class ThemePreset(
     val name: String,
@@ -85,10 +78,6 @@ private val themePresets = listOf(
     ThemePreset("Graphite", Color(0xFF424242), PaletteStyle.Monochrome, ColorSpec.SpecVersion.SPEC_2021, Contrast.Medium),
 )
 
-/**
- * The settings row's subtitle: the preset the user is on, or a short description when the stored
- * values came from an older build's custom mix and match nothing in [themePresets].
- */
 internal fun themePresetLabel(theme: ThemeSettings): String =
     themePresets.firstOrNull { it.matches(theme) }?.name
         ?: "${theme.paletteStyle.toPaletteStyle().name} · " +
@@ -117,13 +106,6 @@ private fun previewScheme(
     com.materialkolor.dynamiccolor.DynamicScheme.Platform.PHONE,
 ).toColorScheme()
 
-/**
- * The preset grid — the whole of the app's theme customisation.
- *
- * It is only ever composed while the dynamic (wallpaper) theme is off: the caller wraps it in an
- * animated visibility, so nothing here knows about that mode and the joined-block corners of the
- * settings card are decided by whichever item is genuinely last on screen.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ThemePresetPicker(
