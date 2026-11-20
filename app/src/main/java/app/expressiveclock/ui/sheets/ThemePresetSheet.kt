@@ -28,6 +28,7 @@ fun ThemePresetSheet(
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
+        contentWindowInsets = { WindowInsets(bottom = 0.dp) },
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {

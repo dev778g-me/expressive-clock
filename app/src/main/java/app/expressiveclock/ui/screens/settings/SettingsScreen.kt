@@ -389,28 +389,28 @@ fun SettingsScreen(
                     )
                 }
 
-            if (category == null || category == SettingsCategory.ALARMS) SettingsCard(title = "Alarms") {
-                SettingsNavigateRow(
-                    icon = Icons.Outlined.NotificationsNone,
-                    title = "Silence after",
-                    subtitle = minutesLabel(settings.alarms.silenceAfterMinutes),
-                    isFirst = true,
-                    onClick = { picker = SettingsPicker.SILENCE },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.Snooze,
-                    title = "Snooze length",
-                    subtitle = minutesLabel(settings.alarms.snoozeMinutes),
-                    onClick = { picker = SettingsPicker.SNOOZE },
-                )
-SettingsNavigateRow(
-                    icon = Icons.Outlined.CalendarMonth,
-                    title = "Start week on",
-                    subtitle = settings.alarms.weekStart.label,
-                    isLast = true,
-                    onClick = { picker = SettingsPicker.WEEK_START },
-                )
-            }
+                SettingsCard(title = "Alarms") {
+                    SettingsNavigateRow(
+                        icon = Icons.Outlined.NotificationsNone,
+                        title = "Silence after",
+                        subtitle = minutesLabel(settings.alarms.silenceAfterMinutes),
+                        isFirst = true,
+                        onClick = { picker = SettingsPicker.SILENCE },
+                    )
+    SettingsNavigateRow(
+                        icon = Icons.Outlined.Snooze,
+                        title = "Snooze length",
+                        subtitle = minutesLabel(settings.alarms.snoozeMinutes),
+                        onClick = { picker = SettingsPicker.SNOOZE },
+                    )
+    SettingsNavigateRow(
+                        icon = Icons.Outlined.CalendarMonth,
+                        title = "Start week on",
+                        subtitle = settings.alarms.weekStart.label,
+                        isLast = true,
+                        onClick = { picker = SettingsPicker.WEEK_START },
+                    )
+                }
 
             if (category == null || category == SettingsCategory.TIMERS) SettingsCard(title = "Timers") {
                 val timerSoundSubtitle = remember(settings.timers.soundUri) {

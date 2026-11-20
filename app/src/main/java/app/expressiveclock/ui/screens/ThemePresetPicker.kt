@@ -61,28 +61,45 @@ data class ThemePreset(
 )
 
 private val themePresets = listOf(
+    // Purple & Blue
     ThemePreset("Calm", Color(0xFF6750A4), PaletteStyle.TonalSpot, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Orchid", Color(0xFF8E24AA), PaletteStyle.Vibrant, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Indigo", Color(0xFF3949AB), PaletteStyle.Expressive, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
     ThemePreset("Ocean", Color(0xFF0277BD), PaletteStyle.Vibrant, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
-    ThemePreset("Lagoon", Color(0xFF00897B), PaletteStyle.TonalSpot, ColorSpec.SpecVersion.SPEC_2021, Contrast.Default),
+    ThemePreset("Arctic", Color(0xFF039BE5), PaletteStyle.TonalSpot, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Midnight", Color(0xFF283593), PaletteStyle.Fidelity, ColorSpec.SpecVersion.SPEC_2025, Contrast.Medium),
+
+    // Cyan & Teal
     ThemePreset("Reef", Color(0xFF00ACC1), PaletteStyle.Expressive, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Aqua", Color(0xFF00BCD4), PaletteStyle.Vibrant, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Mint", Color(0xFF26A69A), PaletteStyle.Fidelity, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+
+    // Green
     ThemePreset("Forest", Color(0xFF2E7D32), PaletteStyle.Fidelity, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
-    ThemePreset("Meadow", Color(0xFF43A047), PaletteStyle.TonalSpot, ColorSpec.SpecVersion.SPEC_2021, Contrast.Default),
+    ThemePreset("Sage", Color(0xFF7CB342), PaletteStyle.Neutral, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Emerald", Color(0xFF008F68), PaletteStyle.Expressive, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+
+    // Yellow & Orange
     ThemePreset("Sunshine", Color(0xFFF9A825), PaletteStyle.Expressive, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
-    ThemePreset("Sunset", Color(0xFFF4511E), PaletteStyle.FruitSalad, ColorSpec.SpecVersion.SPEC_2021, Contrast.Default),
     ThemePreset("Ember", Color(0xFFF57C00), PaletteStyle.Vibrant, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Copper", Color(0xFFBF5728), PaletteStyle.Fidelity, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+
+    // Red & Pink
     ThemePreset("Cherry", Color(0xFFC62828), PaletteStyle.TonalSpot, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
     ThemePreset("Rose", Color(0xFFD81B60), PaletteStyle.Expressive, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
-    ThemePreset("Orchid", Color(0xFF8E24AA), PaletteStyle.Vibrant, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
-    ThemePreset("Sand", Color(0xFF8D6E63), PaletteStyle.Neutral, ColorSpec.SpecVersion.SPEC_2025, Contrast.Medium),
-    ThemePreset("Slate", Color(0xFF546E7A), PaletteStyle.Neutral, ColorSpec.SpecVersion.SPEC_2021, Contrast.Default),
-    ThemePreset("Graphite", Color(0xFF424242), PaletteStyle.Monochrome, ColorSpec.SpecVersion.SPEC_2021, Contrast.Medium),
+    ThemePreset("Berry", Color(0xFFAD1457), PaletteStyle.Vibrant, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+
+    // Neutral & Earthy
+    ThemePreset("Slate", Color(0xFF546E7A), PaletteStyle.TonalSpot, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
+    ThemePreset("Graphite", Color(0xFF424242), PaletteStyle.Monochrome, ColorSpec.SpecVersion.SPEC_2025, Contrast.Medium),
+    ThemePreset("Stone", Color(0xFF757575), PaletteStyle.Neutral, ColorSpec.SpecVersion.SPEC_2025, Contrast.Default),
 )
 
 internal fun themePresetLabel(theme: ThemeSettings): String =
     themePresets.firstOrNull { it.matches(theme) }?.name
-        ?: "${theme.paletteStyle.toPaletteStyle().name} · " +
-            "${theme.colorSpec.toColorSpec().name.removePrefix("SPEC_")} · " +
-            "${theme.contrast.toContrastLevel().name} contrast"
+        ?: ("${theme.paletteStyle.toPaletteStyle().name} · " +
+                "${theme.colorSpec.toColorSpec().name.removePrefix("SPEC_")} · " +
+                "${theme.contrast.toContrastLevel().name} contrast")
 
 private fun ThemePreset.matches(theme: ThemeSettings): Boolean =
     !theme.dynamicColor &&
