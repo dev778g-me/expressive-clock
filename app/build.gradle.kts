@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "app.expressiveclock"
+    namespace = "com.dev.expressiveclock"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.expressiveclock"
+        applicationId = "com.dev.expressiveclock"
         minSdk = 26
         targetSdk = 36
         versionCode = 7
@@ -136,22 +136,15 @@ dependencies {
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.material.icons.extended)
-
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen.v120)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
-
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.graphics.shapes)
     implementation(libs.material.kolor.material3)
-
-    implementation("com.google.android.play:app-update:2.1.0")
-    implementation("com.google.android.play:app-update-ktx:2.1.0")
-
     debugImplementation(libs.androidx.compose.ui.tooling)
-
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.androidx.test.core)

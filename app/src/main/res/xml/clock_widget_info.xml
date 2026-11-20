@@ -26,5 +26,5 @@
     android:initialLayout="@layout/widget_clock_placeholder"
     android:previewImage="@mipmap/ic_launcher"
     android:description="@string/analog_widget_description"
-    android:configure="app.expressiveclock.widget.ClockWidgetConfigActivity"
+    android:configure="com.dev.expressiveclock.widget.ClockWidgetConfigActivity"
     android:widgetFeatures="reconfigurable" />
