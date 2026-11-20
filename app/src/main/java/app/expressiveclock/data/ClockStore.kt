@@ -15,6 +15,7 @@ import app.expressiveclock.core.Lap
 import app.expressiveclock.core.Stopwatch
 import app.expressiveclock.core.TimerState
 import app.expressiveclock.core.WorldCity
+import androidx.compose.ui.graphics.Color
 import app.expressiveclock.ui.theme.Palette
 import java.time.DayOfWeek
 import java.time.Duration
@@ -173,6 +174,10 @@ class ClockStore(private val context: Context) {
         val KEY_PALETTE = stringPreferencesKey("palette")
         val KEY_DARK = stringPreferencesKey("darkMode")
         val KEY_AMOLED = booleanPreferencesKey("amoled")
+        val KEY_SEED_COLOR = stringPreferencesKey("seedColor")
+        val KEY_PALETTE_STYLE = stringPreferencesKey("paletteStyle")
+        val KEY_COLOR_SPEC = stringPreferencesKey("colorSpec")
+        val KEY_CONTRAST = stringPreferencesKey("contrast")
 
         val SEED_ALARMS = listOf(
             Alarm(1, LocalTime.of(6, 40), "Gym", setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)),
@@ -215,6 +220,10 @@ private fun Preferences.toSettings() = ClockSettings(
         palette = enumOr(this[stringPreferencesKey("palette")], Palette.CONCEPT),
         darkMode = enumOr(this[stringPreferencesKey("darkMode")], DarkMode.SYSTEM),
         amoledBlack = this[booleanPreferencesKey("amoled")] ?: false,
+        seedColor = Color((this[stringPreferencesKey("seedColor")] ?: Color(0xFF6750A4).value.toString()).toULong()),
+        paletteStyle = this[stringPreferencesKey("paletteStyle")] ?: "TonalSpot",
+        colorSpec = this[stringPreferencesKey("colorSpec")] ?: "SPEC_2021",
+        contrast = this[stringPreferencesKey("contrast")] ?: "Default",
         dynamicIsland = this[booleanPreferencesKey("dynamicIsland")] ?: false,
         overlayOffsetX = this[intPreferencesKey("overlayOffsetX")] ?: FACTORY_OVERLAY_OFFSET_X,
         overlayOffsetY = this[intPreferencesKey("overlayOffsetY")] ?: FACTORY_OVERLAY_OFFSET_Y,
@@ -243,6 +252,10 @@ private fun androidx.datastore.preferences.core.MutablePreferences.writeSettings
     this[stringPreferencesKey("palette")] = s.theme.palette.name
     this[stringPreferencesKey("darkMode")] = s.theme.darkMode.name
     this[booleanPreferencesKey("amoled")] = s.theme.amoledBlack
+    this[stringPreferencesKey("seedColor")] = s.theme.seedColor.value.toString()
+    this[stringPreferencesKey("paletteStyle")] = s.theme.paletteStyle
+    this[stringPreferencesKey("colorSpec")] = s.theme.colorSpec
+    this[stringPreferencesKey("contrast")] = s.theme.contrast
     this[booleanPreferencesKey("dynamicIsland")] = s.theme.dynamicIsland
     this[intPreferencesKey("overlayOffsetX")] = s.theme.overlayOffsetX
     this[intPreferencesKey("overlayOffsetY")] = s.theme.overlayOffsetY

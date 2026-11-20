@@ -2,6 +2,7 @@ package app.expressiveclock.data
 
 import app.expressiveclock.alarm.Notifications
 import app.expressiveclock.ui.theme.Palette
+import androidx.compose.ui.graphics.Color
 import java.time.DayOfWeek
 
 /**
@@ -67,6 +68,10 @@ data class ThemeSettings(
     val palette: Palette = Palette.CONCEPT,
     val darkMode: DarkMode = DarkMode.SYSTEM,
     val amoledBlack: Boolean = false,
+    val seedColor: Color = Color(0xFF6750A4),
+    val paletteStyle: String = "TonalSpot",
+    val colorSpec: String = "SPEC_2021",
+    val contrast: String = "Default",
     val dynamicIsland: Boolean = false,
     val overlayOffsetX: Int = FACTORY_OVERLAY_OFFSET_X,
     val overlayOffsetY: Int = FACTORY_OVERLAY_OFFSET_Y,
