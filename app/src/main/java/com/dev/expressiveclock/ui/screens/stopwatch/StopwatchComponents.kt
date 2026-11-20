@@ -509,12 +509,12 @@ internal fun StopwatchControls(
     val expanded = !idle
     val expand by animateFloatAsState(
         targetValue = if (expanded) 1f else 0f,
-        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
         label = "expand",
     )
     val label by animateFloatAsState(
         targetValue = if (expanded) 0f else 1f,
-        animationSpec = tween(durationMillis = LABEL_FADE_MS),
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
         label = "label",
     )
     val split by animateFloatAsState(
@@ -585,7 +585,11 @@ internal fun StopwatchControls(
 
         val trio = if (split > 0f) {
             subcompose("trio") {
-                Box(Modifier.graphicsLayer { alpha = split }) {
+                Box(Modifier.graphicsLayer {
+                    alpha = split
+                    scaleX = 0.85f + 0.15f * split
+                    scaleY = 0.85f + 0.15f * split
+                }) {
                     ButtonGroup(
                         overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState) },
                         modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT),
