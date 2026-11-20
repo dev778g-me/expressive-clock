@@ -19,6 +19,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.materialkolor.dynamiccolor.ColorSpec
+import com.materialkolor.PaletteStyle
+import com.materialkolor.material3.toColorScheme
+import com.materialkolor.ktx.toDynamicScheme
 import androidx.core.view.WindowCompat
 import app.expressiveclock.data.DarkMode
 import app.expressiveclock.data.ThemeSettings
@@ -58,8 +62,14 @@ fun ClockTheme(
     val base = when {
         settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> settings.palette.dark
-        else -> settings.palette.light
+        settings.dynamicColor -> if (dark) settings.palette.dark else settings.palette.light
+        else -> settings.seedColor.toDynamicScheme(
+            dark,
+            settings.paletteStyle.toPaletteStyle(),
+            settings.contrast.toContrastLevel().value,
+            settings.colorSpec.toColorSpec(),
+            com.materialkolor.dynamiccolor.DynamicScheme.Platform.PHONE,
+        ).toColorScheme()
     }
     val amoled = dark && settings.amoledBlack
     val scheme = remember(base, amoled) { if (amoled) base.toAmoledBlack() else base }
@@ -117,3 +127,22 @@ fun ColorScheme.toAmoledBlack(): ColorScheme = copy(
     surfaceContainer = Color(0xFF141018),
     scrim = Color.Black,
 )
+
+
+fun String.toPaletteStyle(): PaletteStyle = try {
+    PaletteStyle.Companion.fromName(this)
+} catch (_: Exception) {
+    PaletteStyle.TonalSpot
+}
+
+fun String.toColorSpec(): ColorSpec.SpecVersion = try {
+    ColorSpec.SpecVersion.valueOf(this)
+} catch (_: Exception) {
+    ColorSpec.SpecVersion.SPEC_2021
+}
+
+fun String.toContrastLevel(): com.materialkolor.Contrast = try {
+    com.materialkolor.Contrast.valueOf(this)
+} catch (_: Exception) {
+    com.materialkolor.Contrast.Default
+}
