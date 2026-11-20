@@ -1,5 +1,6 @@
 package app.expressiveclock.ui.theme
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -404,7 +405,7 @@ fun StretchedCaps(
                 },
             )
         },
-        modifier = modifier,
+        modifier = modifier.padding(end = 12.dp),
     ) { measurables, _ ->
         val placeable = measurables.first().measure(
             Constraints(maxWidth = Constraints.Infinity, maxHeight = Constraints.Infinity),
