@@ -7,8 +7,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.Column
@@ -20,12 +22,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -34,11 +39,18 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import android.os.Build
 import android.view.HapticFeedbackConstants
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -58,18 +70,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import app.expressiveclock.core.Lap
 import app.expressiveclock.ui.glass
-import app.expressiveclock.ui.elasticClickable
-import app.expressiveclock.ui.luminousElasticClickable
 import app.expressiveclock.ui.theme.ClockFace
 import app.expressiveclock.core.Stopwatch
 import app.expressiveclock.core.stopwatchParts
@@ -433,7 +446,7 @@ private fun ExpandedStopwatchControls(
         val gap = 8.dp.toPx()
         val buttonConstraints = Constraints.fixed(animatedWidth, animatedHeight)
         val main = subcompose("startPause") {
-            WidePill(
+            StopwatchButton(
                 text = if (idle) "Start" else if (running) "Pause" else "Resume",
                 icon = if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 onClick = onToggle,
@@ -448,7 +461,7 @@ private fun ExpandedStopwatchControls(
                     Box(Modifier.graphicsLayer {
                         alpha = ((blend - .15f) / .85f).coerceIn(0f, 1f)
                     }) {
-                        WidePill(
+                        StopwatchButton(
                             text = if (slot == "lap") "Lap" else "Reset",
                             icon = if (slot == "reset") Icons.Rounded.Replay else null,
                             onClick = { if (!idle) { if (slot == "lap") onLap() else onReset() } },
@@ -526,22 +539,23 @@ private fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () ->
     val positiveTurns = (handTurnAnim.value % 1f + 1f) % 1f
     val secondAngle = positiveTurns * (2f * Math.PI.toFloat())
 
-    Box(
-        modifier = Modifier
-            .size(STOPWATCH_FACE_SIZE)
-            .luminousElasticClickable(
-                shape = CircleShape,
-                maxStretchPercent = 0.04f,
-                maxTranslateDp = 2.0.dp,
-                luminousRadiusScale = 0.58f,
-                onClick = onToggle,
-            )
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = .96f), CircleShape)
-            .border(1.25.dp, MaterialTheme.colorScheme.outline.copy(alpha = .12f), CircleShape),
+    BoxWithConstraints(
+        modifier = Modifier.padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.matchParentSize().padding(22.dp)) {
+        val faceSize = minOf(maxWidth, maxHeight, 480.dp).coerceAtLeast(1.dp)
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .fillMaxWidth()
+                .widthIn(max = faceSize)
+                .clip(CircleShape)
+                .clickable(onClick = onToggle)
+            .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
+            .border(1.25.dp, MaterialTheme.colorScheme.outline.copy(0.5f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.matchParentSize().padding(16.dp)) {
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = size.minDimension / 2f
 
@@ -612,6 +626,7 @@ private fun StopwatchFace(elapsedMillis: Long, running: Boolean, onToggle: () ->
                 letterSpacing = 1.5.sp,
             )
         }
+        }
     }
 }
 
@@ -641,6 +656,69 @@ private val STOPWATCH_FACE_SIZE = 410.dp
  * band a constant, the same on a fresh screen as on a full one.
  */
 @Composable
+private fun StopwatchButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    container: Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f),
+    content: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    icon: ImageVector? = null,
+    outlined: Boolean = false,
+    height: Dp = ROW_HEIGHT,
+    compact: Boolean = false,
+    fillWidth: Boolean = true,
+    contentPaddingH: Dp = if (compact) 8.dp else 24.dp,
+    contentAlpha: Float = 1f,
+    glow: Boolean = true,
+) {
+    val buttonModifier = modifier
+        .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
+        .height(height)
+        .graphicsLayer { alpha = contentAlpha }
+
+    val contentRow: @Composable () -> Unit = {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                )
+                if (text.isNotEmpty()) Spacer(Modifier.width(if (compact) 8.dp else 16.dp))
+            }
+            if (text.isNotEmpty()) {
+                Text(
+                    text,
+                    style = if (compact) MaterialTheme.typography.titleMediumEmphasized else MaterialTheme.typography.headlineSmallEmphasized,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+
+    if (outlined) {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = buttonModifier,
+            shapes = ButtonDefaults.shapes(),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = content),
+            contentPadding = PaddingValues(horizontal = contentPaddingH, vertical = 0.dp),
+        ) {
+            contentRow()
+        }
+    } else {
+        Button (
+            onClick = onClick,
+            modifier = buttonModifier,
+            shapes = ButtonDefaults.shapes(),
+            contentPadding = PaddingValues(horizontal = contentPaddingH, vertical = 0.dp),
+            elevation = if (glow) ButtonDefaults.buttonElevation() else ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        ) {
+            contentRow()
+        }
+    }
+}
+
+@Composable
 private fun StopwatchControls(
     idle: Boolean,
     running: Boolean,
@@ -648,6 +726,9 @@ private fun StopwatchControls(
     onLap: () -> Unit,
     onReset: () -> Unit,
 ) {
+    val startStopInteraction = remember { MutableInteractionSource() }
+    val lapInteraction = remember { MutableInteractionSource() }
+    val resetInteraction = remember { MutableInteractionSource() }
     val expanded = !idle
     // The *effects* spring, not the spatial one, and not by accident. Material's fast spatial
     // spring is under-damped (0.6/800), which means it takes about 240 ms and rings past its
@@ -681,26 +762,7 @@ private fun StopwatchControls(
     // interpolation out of range.
     val e = expand.coerceIn(0f, 1f)
 
-    val startStop: @Composable (Boolean) -> Unit = { compact ->
-        WidePill(
-            text = if (running) "Stop" else "Start",
-            icon = if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            onClick = onToggle,
-            container = if (running) {
-                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.58f)
-            } else {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.58f)
-            },
-            content = if (running) {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            } else {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            },
-            height = ROW_HEIGHT,
-            compact = compact,
-            glow = false,
-        )
-    }
+
 
     SubcomposeLayout(
         Modifier.fillMaxWidth().height(ROW_HEIGHT).padding(horizontal = 20.dp),
@@ -726,7 +788,7 @@ private fun StopwatchControls(
         // other today; if a translation ever made "Start" the longer of the two, clipping the word
         // would be the worse failure.
         val natural = subcompose("probe") {
-            WidePill(
+            StopwatchButton(
                 text = "Start",
                 icon = Icons.Rounded.PlayArrow,
                 onClick = {},
@@ -751,7 +813,7 @@ private fun StopwatchControls(
                     // time this frame draws, and relabelling the pill at the instant of the tap
                     // makes the thing that grows a different button from the one that was pressed.
                     // The new labels belong to the split, which is what the split is for.
-                    WidePill(
+                    StopwatchButton(
                         text = "Start",
                         icon = Icons.Rounded.PlayArrow,
                         onClick = onToggle,
@@ -772,22 +834,83 @@ private fun StopwatchControls(
         val trio = if (split > 0f) {
             subcompose("trio") {
                 Box(Modifier.graphicsLayer { alpha = split }) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(GAP * split)) {
-                        Box(Modifier.weight(1f)) {
-                            WidePill(text = "Lap", onClick = onLap, height = ROW_HEIGHT, compact = true, glow = false)
-                        }
-                        Box(Modifier.weight(1f)) {
-                            WidePill(
-                                text = "Reset",
-                                onClick = onReset,
-                                outlined = true,
-                                content = MaterialTheme.colorScheme.onSurface,
-                                height = ROW_HEIGHT,
-                                compact = true,
-                                glow = false,
-                            )
-                        }
-                        Box(Modifier.weight(1f)) { startStop(true) }
+                    ButtonGroup(
+                        overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState) },
+                        modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        customItem(
+                            buttonGroupContent = {
+                                Button(
+                                    onClick = onLap,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .animateWidth(lapInteraction),
+                                    interactionSource = lapInteraction,
+                                    shapes = androidx.compose.material3.ButtonShapes(
+                                        shape = ButtonGroupDefaults.connectedLeadingButtonShape,
+                                        pressedShape = ButtonGroupDefaults.connectedLeadingButtonPressShape,
+                                    ),
+                                ) {
+                                    Text("Lap", maxLines = 1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                                }
+                            },
+                            menuContent = { _ -> },
+                        )
+                        val startStopInteraction = startStopInteraction
+                        customItem(
+                            buttonGroupContent = {
+                                Button(
+                                    onClick = onToggle,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .animateWidth(startStopInteraction),
+                                    interactionSource = startStopInteraction,
+                                    shapes = androidx.compose.material3.ButtonShapes(
+                                        shape = RoundedCornerShape(8.dp),
+                                        pressedShape = ButtonGroupDefaults.connectedMiddleButtonPressShape,
+                                    ),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (running) MaterialTheme.colorScheme.tertiaryContainer
+                                        else MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = if (running) MaterialTheme.colorScheme.onTertiaryContainer
+                                        else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    ),
+                                ) {
+                                    Icon(
+                                        imageVector = if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                        contentDescription = null,
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(if (running) "Stop" else "Start", maxLines = 1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                                }
+                            },
+                            menuContent = { _ -> },
+                        )
+                        customItem(
+                            buttonGroupContent = {
+                                OutlinedButton(
+                                    onClick = onReset,
+                                    modifier = Modifier
+                                        .weight(0.5f)
+                                        .animateWidth(resetInteraction),
+                                    interactionSource = resetInteraction,
+                                    shapes = androidx.compose.material3.ButtonShapes(
+                                        shape = ButtonGroupDefaults.connectedTrailingButtonShape,
+                                        pressedShape = ButtonGroupDefaults.connectedTrailingButtonPressShape,
+                                    ),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Replay,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            },
+                            menuContent = { _ -> },
+                        )
                     }
                 }
             }.first().measure(Constraints.fixed(full, h))
@@ -817,7 +940,7 @@ private val STACK_GAP = 35.dp
 private val READOUT_CAP = 66.dp
 
 private val GAP = 6.dp
-private val ROW_HEIGHT = 56.dp
+private val ROW_HEIGHT = 64.dp
 
 /**
  * Lap rows are deliberately shorter than a list item usually is. Every dp here buys list, and the
