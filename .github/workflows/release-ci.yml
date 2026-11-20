@@ -60,12 +60,11 @@ jobs:
             -keystore app/keyStore.jks \
             -storepass "$KEYSTORE_PASSWORD"
 
-          echo "Checking key alias/password..."
+          echo "Checking key alias (PKCS12 uses store password for the key)..."
           keytool -list \
             -keystore app/keyStore.jks \
             -storepass "$KEYSTORE_PASSWORD" \
-            -alias "$KEY_ALIAS" \
-            -keypass "$KEY_PASSWORD"
+            -alias "$KEY_ALIAS"
 
       - name: Build signed APK
         env:
