@@ -1,38 +1,28 @@
 [versions]
 agp = "9.2.1"
 kotlin = "2.4.0"
-
-# The ALPHA BOM, deliberately. Stable material3 (1.4.0) ships the expressive *theming* layer
-# without the expressive *components*, and pinning material3:1.5.0-alpha25 on top of the stable BOM
-# links half of compose at the wrong version. compose-bom-alpha:2026.07.01 pins ui/foundation/
-# runtime 1.12.0-rc01 *and* material3 1.5.0-alpha25 together. Both re-verified latest 2026-08-10.
 composeBom = "2026.07.01"
-material3 = "1.5.0-alpha25"
-
+material3 = "1.5.0-rc01"
 activityCompose = "1.13.0"
 coreKtx = "1.19.0"
 lifecycle = "2.11.0"
 datastore = "1.2.1"
-# 1.0.1, not 1.1.0: material3 1.5.0-alpha25 compiles against 1.0.1 and 1.1.0 is source- and
-# binary-breaking. Nothing here needs what 1.1.0 added.
 graphicsShapes = "1.0.1"
-
+materialKolor = "6.0.0"
 junit = "4.13.2"
 androidxTestCore = "1.7.0"
 
+
+
+
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom-alpha", version.ref = "composeBom" }
-
-# [M3E] The expressive component set lives in core material3; there is no
-# `material3-expressive` artifact (verified 404 on dl.google.com).
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version = "1.7.8" }
-
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version = "1.0.1" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -41,6 +31,7 @@ androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lif
 
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphicsShapes" }
+material-kolor-material3 = { group = "com.materialkolor", name = "material-kolor-material3", version.ref = "materialKolor" }
 
 play-update = { group = "com.google.android.play", name = "app-update", version = "2.1.0" }
 play-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version = "2.1.0" }

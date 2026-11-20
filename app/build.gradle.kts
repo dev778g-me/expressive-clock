@@ -31,30 +31,35 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            val storePath = keystoreProps.getProperty("clockStoreFile")
-                ?: (findProperty("clockStoreFile") as String?)
-                ?: error("Missing 'clockStoreFile' in keystore.properties or ~/.gradle/gradle.properties")
-            val storeFileObj = rootProject.file(storePath)
-            if (!storeFileObj.exists()) {
-                error("Keystore file '$storePath' defined by 'clockStoreFile' does not exist.")
+        // Release signing is optional for local development/sync: only configure it when
+        // keystore.properties exists, so debug builds and Gradle sync do not fail on machines
+        // without the release keystore.
+        if (keystorePropsFile.exists()) {
+            create("release") {
+                val storePath = keystoreProps.getProperty("clockStoreFile")
+                    ?: (findProperty("clockStoreFile") as String?)
+                    ?: error("Missing 'clockStoreFile' in keystore.properties or ~/.gradle/gradle.properties")
+                val storeFileObj = rootProject.file(storePath)
+                if (!storeFileObj.exists()) {
+                    error("Keystore file '$storePath' defined by 'clockStoreFile' does not exist.")
+                }
+                storeFile = storeFileObj
+                storePassword = keystoreProps.getProperty("clockStorePassword")
+                    ?: (findProperty("clockStorePassword") as String?)
+                    ?: error("Missing 'clockStorePassword' in keystore.properties or ~/.gradle/gradle.properties")
+                keyAlias = keystoreProps.getProperty("clockKeyAlias")
+                    ?: (findProperty("clockKeyAlias") as String?)
+                    ?: error("Missing 'clockKeyAlias' in keystore.properties or ~/.gradle/gradle.properties")
+                keyPassword = keystoreProps.getProperty("clockKeyPassword")
+                    ?: (findProperty("clockKeyPassword") as String?)
+                    ?: error("Missing 'clockKeyPassword' in keystore.properties or ~/.gradle/gradle.properties")
             }
-            storeFile = storeFileObj
-            storePassword = keystoreProps.getProperty("clockStorePassword")
-                ?: (findProperty("clockStorePassword") as String?)
-                ?: error("Missing 'clockStorePassword' in keystore.properties or ~/.gradle/gradle.properties")
-            keyAlias = keystoreProps.getProperty("clockKeyAlias")
-                ?: (findProperty("clockKeyAlias") as String?)
-                ?: error("Missing 'clockKeyAlias' in keystore.properties or ~/.gradle/gradle.properties")
-            keyPassword = keystoreProps.getProperty("clockKeyPassword")
-                ?: (findProperty("clockKeyPassword") as String?)
-                ?: error("Missing 'clockKeyPassword' in keystore.properties or ~/.gradle/gradle.properties")
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -140,6 +145,7 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.graphics.shapes)
+    implementation(libs.material.kolor.material3)
 
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
