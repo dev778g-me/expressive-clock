@@ -55,10 +55,17 @@ jobs:
           echo "Checking file type..."
           file app/keyStore.jks
 
-          echo "Checking keystore..."
+          echo "Checking keystore (store password)..."
           keytool -list \
             -keystore app/keyStore.jks \
             -storepass "$KEYSTORE_PASSWORD"
+
+          echo "Checking key alias/password..."
+          keytool -list \
+            -keystore app/keyStore.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            -keypass "$KEY_PASSWORD"
 
       - name: Build signed APK
         env:
