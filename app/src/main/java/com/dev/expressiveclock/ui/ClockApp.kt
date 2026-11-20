@@ -32,6 +32,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Timer
@@ -93,6 +96,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.material.icons.filled.AlarmAdd
+import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.HourglassFull
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.ToggleButton
@@ -543,7 +550,7 @@ private fun RowScope.FloatingToolbarNavItem(
     val rotation = remember { Animatable(0f) }
     val selectedScale by animateFloatAsState(
         targetValue = if (selected) 1f else .94f,
-        animationSpec = tween(180),
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
         label = "floatingToolbarScale",
     )
 
@@ -588,7 +595,11 @@ private fun RowScope.FloatingToolbarNavItem(
                 label = "navigationIcon",
             ) { isSelected ->
                 Icon(
-                    imageVector = tab.icon,
+                    imageVector = if (selected) when (tab) {
+                        Tab.ALARMS -> Icons.Filled.AlarmAdd
+                        Tab.TIMERS -> Icons.Filled.HourglassBottom
+                        Tab.STOPWATCH -> Icons.Filled.Timer
+                    } else tab.icon,
                     contentDescription = tab.label,
                     modifier = Modifier.graphicsLayer {
                         scaleX = selectedScale

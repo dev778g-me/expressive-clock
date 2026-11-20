@@ -2,7 +2,7 @@
 
 *A Material 3 Expressive clock app for Android.*
 
-Expressive Clock is a personal evolution of [Material Clock](https://github.com/rbouaf/material-clock), an open-source Android clock project created by [Rayane Bouafia (@rbouaf)](https://github.com/rbouaf). Huge thanks to the original developer for sharing the project and making this work possible.
+Expressive Clock is a personal evolution of [Material Clock](https://github.com/rbouaf/material-clock), an open-source Android clock project created by [Rayane Bouafia (@rbouaf)](https://github.com/rbouaf), forked and extended by [Samuel Beckman (@samuelbeckman)](https://github.com/samuelbeckman) as [Expressive Clock](https://github.com/samuelbeckman/expressive-clock). Huge thanks to both developers for sharing their work and making this project possible.
 
 Building on that foundation, Expressive Clock brings together alarms, a world clock, timers and a stopwatch in a modern Android interface inspired by Google's Material 3 Expressive design language.
 
@@ -31,9 +31,11 @@ You can also use the included Gradle wrapper to build the project from the comma
 
 ## Acknowledgements
 
-Expressive Clock builds upon the open-source work of [Rayane Bouafia](https://github.com/rbouaf) and the original [Material Clock repository](https://github.com/rbouaf/material-clock).
+Expressive Clock builds upon the open-source work of:
+- [Rayane Bouafia (@rbouaf)](https://github.com/rbouaf) — original [Material Clock](https://github.com/rbouaf/material-clock) project.
+- [Samuel Beckman (@samuelbeckman)](https://github.com/samuelbeckman) — [Expressive Clock](https://github.com/samuelbeckman/expressive-clock) fork that this work is based on.
 
-This fork preserves the original project's licensing and attribution while developing the application further under the Expressive Clock name.
+This project preserves the original licensing and attribution while being developed further under the Expressive Clock name by [dev778g-me](https://github.com/dev778g-me).
 
 ## Licence
 
