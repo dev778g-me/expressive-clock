@@ -1,5 +1,6 @@
 package app.expressiveclock.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -34,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import app.expressiveclock.ui.theme.ClockFace
 import app.expressiveclock.ui.blueGlow
 import app.expressiveclock.ui.glass
-import app.expressiveclock.ui.luminousElasticClickable
 import app.expressiveclock.ui.theme.Numerals
 
 /**
@@ -184,20 +185,16 @@ fun WidePill(
     contentPaddingH: Dp = if (compact) 10.dp else 24.dp,
     contentAlpha: Float = 1f,
     glow: Boolean = true,
+    shape: Shape = CircleShape,
 ) {
     Box(
         modifier = modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .height(height)
-            .luminousElasticClickable(
-                shape = CircleShape,
-                maxStretchPercent = 0.09f,
-                maxTranslateDp = 2.4.dp,
-                onClick = onClick,
-            )
-            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .clip(shape)
             .glass(
-                CircleShape,
+                shape,
                 if (outlined) MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = .94f)
                 else container.copy(alpha = .40f),
                 .86f,

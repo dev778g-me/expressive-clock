@@ -52,7 +52,6 @@ import app.expressiveclock.data.SILENT
 import app.expressiveclock.data.WeekStart
 import app.expressiveclock.data.formatPresetLabel
 import app.expressiveclock.ui.theme.Palette
-import app.expressiveclock.ui.elasticClickable
 import app.expressiveclock.widget.ClockWidgetProvider
 import app.expressiveclock.widget.WidgetEntryPoints
 
@@ -177,7 +176,7 @@ fun AppSettingsSheet(
             )
 
             if (showPresetsDialog) {
-                app.expressiveclock.ui.screens.TimerPresetsDialog(
+                app.expressiveclock.ui.sheets.TimerPresetsSheet(
                     presets = settings.timers.presets,
                     onDismiss = { showPresetsDialog = false },
                     onSave = { newPresets ->
@@ -476,7 +475,7 @@ private fun Swatch(
                     },
                     shape = CircleShape,
                 )
-                .elasticClickable(onClick = onClick),
+                .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             if (selected) {
@@ -647,7 +646,7 @@ fun TimerSettingsSheet(
     }
 
     if (showPresetsDialog) {
-        app.expressiveclock.ui.screens.TimerPresetsDialog(
+        app.expressiveclock.ui.sheets.TimerPresetsSheet(
             presets = settings.timers.presets,
             onDismiss = { showPresetsDialog = false },
             onSave = { newPresets ->

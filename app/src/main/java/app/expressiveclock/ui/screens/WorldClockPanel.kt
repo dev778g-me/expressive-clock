@@ -94,7 +94,6 @@ import androidx.compose.ui.unit.dp
 import app.expressiveclock.core.WorldCity
 import app.expressiveclock.ui.WorldMapData
 import app.expressiveclock.ui.glass
-import app.expressiveclock.ui.luminousElasticClickable
 import app.expressiveclock.ui.rememberWallTicker
 import app.expressiveclock.ui.sheets.prettify
 import java.time.ZoneId
@@ -605,12 +604,7 @@ private fun AddLocationButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp)
-            .luminousElasticClickable(
-                shape = CircleShape,
-                maxStretchPercent = .04f,
-                maxTranslateDp = 1.2.dp,
-                onClick = onClick,
-            )
+            .clickable(onClick = onClick)
             .clip(CircleShape)
             .background(primary.copy(alpha = .12f), CircleShape)
             .padding(horizontal = 18.dp),

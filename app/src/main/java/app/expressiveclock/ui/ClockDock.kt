@@ -93,11 +93,6 @@ fun ClockDock(
                     .width(DOCK_WIDTH)
                     .height(DOCK_HEIGHT)
                     .graphicsLayer { translationX = dockShift.toPx() }
-                    .luminousElasticClickable(
-                        shape = RoundedCornerShape(DOCK_HEIGHT / 2),
-                        maxStretchPercent = 0.06f,
-                        maxTranslateDp = 1.8.dp,
-                    )
                     .glass(
                         RoundedCornerShape(DOCK_HEIGHT / 2),
                         dockTint,
@@ -153,11 +148,8 @@ fun ClockDock(
                         scaleX = addScale
                         scaleY = addScale
                     }
-                    .luminousElasticClickable(
+                    .clickable(
                         enabled = showAdd,
-                        shape = CircleShape,
-                        maxStretchPercent = 0.08f,
-                        maxTranslateDp = 2.0.dp,
                         onClick = onAdd,
                     )
                     .clip(CircleShape)

@@ -1,6 +1,5 @@
 package app.expressiveclock.ui.sheets
 
-import app.expressiveclock.ui.elasticClickable
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +48,7 @@ fun SwitchRow(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         // One tap target for the whole row. `Role.Switch` is what tells a screen reader the row is
         // the control, rather than announcing an unlabelled switch beside some text.
-        modifier = Modifier.elasticClickable(onClick = { onChange(!checked) }),
+        modifier = Modifier.clickable(onClick = { onChange(!checked) }),
     )
 }
 
@@ -73,7 +72,7 @@ fun <T> ChoiceRow(
         headlineContent = { Text(title) },
         supportingContent = { Text(label(value)) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.elasticClickable(onClick = { open = true }),
+        modifier = Modifier.clickable(onClick = { open = true }),
     )
     if (open) {
         AlertDialog(
@@ -117,7 +116,7 @@ fun NavigateRow(title: String, subtitle: String?, onClick: () -> Unit) {
         headlineContent = { Text(title) },
         supportingContent = subtitle?.let { { Text(it, maxLines = 1) } },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.elasticClickable(onClick = onClick),
+        modifier = Modifier.clickable(onClick = onClick),
     )
 }
 
@@ -127,7 +126,7 @@ fun SheetTitle(text: String) {
         text,
         style = MaterialTheme.typography.headlineSmallEmphasized,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 12.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
     )
 }
 
