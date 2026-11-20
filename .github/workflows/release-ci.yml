@@ -60,17 +60,21 @@ jobs:
             -keystore app/keyStore.jks \
             -storepass "$KEYSTORE_PASSWORD"
 
-          echo "Checking key alias (PKCS12 uses store password for the key)..."
-          keytool -list \
-            -keystore app/keyStore.jks \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -alias "$KEY_ALIAS"
+          echo "Auto-detecting key alias from keystore..."
+          KEY_ALIAS=$(keytool -list -keystore app/keyStore.jks -storepass "$KEYSTORE_PASSWORD" | awk -F, '/PrivateKeyEntry/ {gsub(/^[ \t]+|[ \t]+$/, "", $1); print $1; exit}')
+          echo "Detected alias: $KEY_ALIAS"
+          if [ -z "$KEY_ALIAS" ]; then
+            echo "ERROR: could not detect key alias!"
+            exit 1
+          fi
+          # PKCS12 keystores require store password == key password.
+          KEY_PASSWORD="$KEYSTORE_PASSWORD"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
 
       - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           ./gradlew assembleRelease \
             -PclockStoreFile="app/keyStore.jks" \
@@ -81,8 +85,6 @@ jobs:
       - name: Build signed AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           ./gradlew bundleRelease \
             -PclockStoreFile="app/keyStore.jks" \
