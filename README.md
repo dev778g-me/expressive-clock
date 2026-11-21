@@ -8,15 +8,15 @@ Building on that foundation, Expressive Clock brings together alarms, a world cl
 
 <p align="center">
   <img src="docs/screenshots/expressive_clock1.png" width="49%" alt="Expressive Clock — alarms" />
-  <img src="docs/screenshots/expressive_clock2.png" width="49%" alt="Expressive Clock — timers" />
+  <img src="docs/screenshots/expressive_clock6.png" width="49%" alt="Expressive Clock — add alarm" />
 </p>
 <p align="center">
   <img src="docs/screenshots/expressive_clock3.png" width="49%" alt="Expressive Clock — stopwatch" />
-  <img src="docs/screenshots/expressive_clock4.png" width="49%" alt="Expressive Clock — world clock" />
+  <img src="docs/screenshots/expressive_clock5.png" width="49%" alt="Expressive Clock — add alarm" />
 </p>
 <p align="center">
-  <img src="docs/screenshots/expressive_clock5.png?v=2" width="49%" alt="Expressive Clock — settings" />
-  <img src="docs/screenshots/expressive_clock6.png?v=2" width="49%" alt="Expressive Clock — more" />
+  <img src="docs/screenshots/expressive_clock2.png?v=2" width="49%" alt="Expressive Clock — theme" />
+  <img src="docs/screenshots/expressive_clock4.png?v=2" width="49%" alt="Expressive Clock — theme" />
 </p>
 
 ## Features
