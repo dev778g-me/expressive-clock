@@ -19,9 +19,6 @@ Building on that foundation, Expressive Clock brings together alarms, a world cl
   <img src="docs/screenshots/expressive_clock4.png" width="100%" alt="Expressive Clock — world clock" />
 </p>
 <p align="center">
-  <img src="docs/screenshots/expressive_clock5.png" width="100%" alt="Expressive Clock — settings" />
-</p>
-<p align="center">
   <img src="docs/screenshots/expressive_clock6.png" width="100%" alt="Expressive Clock — more" />
 </p>
 
